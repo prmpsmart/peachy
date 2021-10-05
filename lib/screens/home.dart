@@ -30,7 +30,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           icon: Icon(Icons.menu),
           iconSize: 25.0,
           color: Colors.white,
-          onPressed: () {},
+          onPressed: () => print('Menu'),
         ),
         title: Text(
           'Peachy',
@@ -42,7 +42,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
             icon: Icon(Icons.search),
             iconSize: 25.0,
             color: Colors.white,
-            onPressed: () {},
+            onPressed: () => print('Search'),
           ),
         ],
         bottom: TabBar(
@@ -64,7 +64,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           ? FloatingActionButton(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              onPressed: () => print('open chats'),
+              onPressed: () => print('New Chat'),
               tooltip: 'New Message',
               child: Icon(
                 Icons.message,

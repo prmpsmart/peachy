@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:peachy/screens/chat_screen.dart';
+import 'package:peachy/widgets/profile_dialog.dart';
 import 'data.dart';
-import 'chat.dart';
 
 class ChatList extends StatelessWidget {
   final manager;
@@ -18,6 +19,7 @@ class ChatList extends StatelessWidget {
             String name = chat.sender.name;
             String time = chat.time;
             String message = chat.text;
+            User user = chat.sender;
 
             return Column(
               children: <Widget>[
@@ -25,12 +27,38 @@ class ChatList extends StatelessWidget {
                   height: 0.0,
                 ),
                 ListTile(
-                  leading: CircleAvatar(
-                    radius: 27,
-                    foregroundColor: Theme.of(context).primaryColor,
-                    // backgroundColor: Colors.grey,
-                    backgroundImage: null,
-                  ),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(user: chat.sender),
+                        ));
+                  },
+                  leading: user.icon.isNotEmpty
+                      ? CircleAvatar(
+                          radius: 27,
+                          foregroundColor: Theme.of(context).primaryColor,
+                          backgroundImage: null,
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).primaryColor.withOpacity(.5),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.account_circle_outlined),
+                            iconSize: 40,
+                            color: Theme.of(context).accentColor,
+                            onPressed: () {
+                              showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return ProfileDialog(user);
+                                  });
+                            },
+                          ),
+                        ),
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
@@ -62,10 +90,7 @@ class ChatList extends StatelessWidget {
                           : Text(''),
                       Text(
                         '29/09/2021',
-                        style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.grey, fontSize: 10),
                       )
                     ],
                   ),
@@ -85,13 +110,37 @@ class ChatList extends StatelessWidget {
                                 fontWeight: FontWeight.w300),
                           ),
                         ),
-                        Text(
-                          time,
-                          style: TextStyle(
+                        Container(
+                            child: Row(children: [
+                          if (chat.sent)
+                            Icon(
+                              chat.sent
+                                  ? Icons.check_circle_outline
+                                  : Icons.history,
+                              size: 13,
                               color: Colors.grey,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                        )
+                            ),
+                          if (!chat.sent)
+                            Icon(
+                              chat.sent
+                                  ? Icons.check_circle_outline
+                                  : Icons.history,
+                              size: 13,
+                              color: Colors.grey,
+                            ),
+                          if (chat.sent || chat.unread)
+                            SizedBox(
+                              width: 2,
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(
+                              time,
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 10),
+                            ),
+                          )
+                        ]))
                       ],
                     ),
                   ),

@@ -1,5 +1,45 @@
 import 'package:flutter/material.dart';
 
+class User {
+  var id;
+  String name;
+  String icon;
+  int type = 1;
+  List<Message> msgs;
+  List<User> users;
+
+  User(
+      {this.id,
+      this.name,
+      this.icon = '',
+      this.type = 1,
+      this.msgs,
+      this.users});
+
+  set messages(List<Message> messages) => msgs = messages;
+  List<Message> get messages => msgs;
+}
+
+class Message {
+  final User sender;
+  final String time;
+  final String data;
+  final String text;
+  final bool sent;
+  final bool unread;
+  String type;
+
+  Message({
+    this.sender,
+    this.time,
+    this.text,
+    this.sent,
+    this.unread,
+    this.type = 'text',
+    this.data = '',
+  });
+}
+
 Map<int, Color> color = {
   50: Color.fromRGBO(136, 14, 79, .1),
   100: Color.fromRGBO(136, 14, 79, .2),

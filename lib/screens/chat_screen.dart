@@ -1,26 +1,106 @@
 import 'package:flutter/material.dart';
-import 'package:peachy/constants.dart';
-import 'package:peachy/widgets/data.dart';
+import 'package:peachy/constants.dart' as constants;
+
+import 'package:peachy/widgets/profile_dialog.dart';
+
+class AudioChat extends StatefulWidget {
+  final constants.Message message;
+  final bool isMe;
+  const AudioChat(this.message, this.isMe);
+
+  @override
+  _AudioChatState createState() => _AudioChatState();
+}
+
+class _AudioChatState extends State<AudioChat> {
+  bool pause = true;
+  double sliderValue = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    ThemeData themeData = Theme.of(context);
+    Slider slider = Slider(
+        activeColor: widget.isMe
+            ? Theme.of(context).accentColor
+            : Theme.of(context).primaryColor,
+        divisions: 4,
+        value: sliderValue,
+        max: 100,
+        label: '$sliderValue %',
+        onChanged: (newValue) {
+          setState(() {
+            sliderValue = newValue;
+            // print(newValue);
+          });
+        });
+
+    return SizedBox(
+      height: 35,
+      width: 228,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 35,
+            width: 35,
+            child: Material(
+              clipBehavior: Clip.antiAlias,
+              borderRadius: BorderRadius.circular(17.5),
+              color:
+                  widget.isMe ? themeData.accentColor : themeData.primaryColor,
+              child: InkResponse(
+                onTap: () {
+                  setState(() {
+                    if (pause)
+                      pause = false;
+                    else
+                      pause = true;
+                  });
+                },
+                splashColor: widget.isMe
+                    ? themeData.primaryColor.withOpacity(.5)
+                    : themeData.accentColor.withOpacity(.5),
+                child: Icon(
+                  pause ? Icons.play_arrow : Icons.pause,
+                  size: 20,
+                  color: widget.isMe
+                      ? themeData.primaryColor
+                      : themeData.accentColor,
+                ),
+              ),
+            ),
+          ),
+          slider
+        ],
+      ),
+    );
+  }
+}
 
 class ChatScreen extends StatefulWidget {
-  final User user;
+  final constants.User client;
+  final constants.User user;
 
-  ChatScreen({this.user});
+  ChatScreen({this.client, this.user});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  Widget _buildMessage(Message lastMessage, Message message, bool isMe) {
+  bool inText = false;
+
+  Widget _buildMessage(
+      constants.Message lastMessage, constants.Message message, bool isMe) {
     bool sameAsLast = lastMessage?.sender == message.sender;
-    double offset = MediaQuery.of(context).size.width * .25;
-    // offset = 80;
+    double offset = MediaQuery.of(context).size.width * .20;
 
     double top = 8;
     if (sameAsLast) {
       top = 1;
     }
+
+    ThemeData themeData = Theme.of(context);
 
     final msg = Row(
       mainAxisSize: MainAxisSize.min,
@@ -42,54 +122,69 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: EdgeInsets.all(5),
               decoration: BoxDecoration(
                   color: isMe
-                      ? Theme.of(
-                          context,
-                        ).accentColor.withOpacity(1)
-                      : Theme.of(
-                          context,
-                        ).primaryColor.withOpacity(.2),
+                      ? themeData.primaryColor.withOpacity(.5)
+                      : themeData.primaryColor.withOpacity(.2),
                   borderRadius: BorderRadius.circular(10)),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
+                  if (!isMe && widget.user.type == 2)
+                    Text(
+                      message.sender.name,
+                      style: TextStyle(
+                          // color: isMe ? Colors.white : Colors.blueGrey,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  if (!isMe && widget.user.type == 2)
+                    SizedBox(
+                      height: 4,
+                    ),
+                  if (message.type == 'image')
+                    Image.asset('assets/ic_male_ph.jpg', fit: BoxFit.scaleDown),
+                  if (message.type == 'audio') AudioChat(message, isMe),
                   Text(
                     message.text,
                     style: TextStyle(
                         // color: isMe ? Colors.white : Colors.blueGrey,
                         fontSize: 12,
-                        fontWeight: FontWeight.w600),
+                        fontWeight: FontWeight.w400),
                   ),
                   Container(
                     padding: EdgeInsets.only(top: 2),
                     alignment: Alignment.bottomRight,
                     width: isMe ? 48 : 36,
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2.0),
-                            child: Text(
-                              message.time,
-                              textAlign: TextAlign.end,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2.0),
+                              child: Text(
+                                message.time,
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.grey.shade800,
+                                ),
                               ),
                             ),
-                          ),
-                          if (isMe)
-                            SizedBox(
-                              width: 2,
-                            ),
-                          if (isMe)
-                            Icon(
-                              message.sent
-                                  ? Icons.check_circle_outline
-                                  : Icons.history,
-                              size: 10,
-                              color: Colors.grey,
-                            )
-                        ]),
+                            if (isMe)
+                              SizedBox(
+                                width: 2,
+                              ),
+                            if (isMe)
+                              Icon(
+                                message.sent
+                                    ? Icons.check_circle_outline
+                                    : Icons.history,
+                                size: 10,
+                                color: Colors.grey.shade800,
+                              )
+                          ]),
+                    ),
                   ),
                 ],
               )),
@@ -101,30 +196,83 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageComposer() {
+    var sendButton = IconButton(
+      constraints: BoxConstraints(),
+      icon: Icon(inText ? Icons.send : Icons.mic),
+      iconSize: 30,
+      onPressed: () {},
+      color: Theme.of(context).primaryColor,
+    );
+    var cameraButton = IconButton(
+      constraints: BoxConstraints(),
+      icon: Icon(Icons.camera_alt_outlined),
+      iconSize: 25,
+      color: Theme.of(context).primaryColor,
+      onPressed: () {},
+    );
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      height: 70,
-      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 5),
+      margin: EdgeInsets.only(bottom: 7, top: 7),
+      color: Colors.transparent,
       child: Row(
         children: <Widget>[
-          IconButton(
-            icon: Icon(Icons.photo),
-            iconSize: 25.0,
-            color: Theme.of(context).primaryColor,
-            onPressed: () {},
-          ),
           Expanded(
-              child: TextField(
-            textCapitalization: TextCapitalization.sentences,
-            onChanged: (value) {},
-            decoration:
-                InputDecoration.collapsed(hintText: 'Send a amessage...'),
-          )),
-          IconButton(
-              icon: Icon(Icons.send),
-              iconSize: 25.0,
-              color: Theme.of(context).primaryColor,
-              onPressed: () {}),
+            child: Container(
+              margin: EdgeInsets.only(right: 2.5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    constraints: BoxConstraints(),
+                    icon: Icon(Icons.emoji_emotions_outlined),
+                    iconSize: 25,
+                    color: Theme.of(context).primaryColor,
+                    onPressed: () {},
+                  ),
+                  Expanded(
+                    child: TextField(
+                      textCapitalization: TextCapitalization.sentences,
+                      onChanged: (value) {
+                        if (value.isNotEmpty) {
+                          setState(() {
+                            inText = true;
+                          });
+                        } else {
+                          setState(() {
+                            inText = false;
+                          });
+                        }
+                      },
+                      decoration: InputDecoration.collapsed(
+                        hintText: 'Type your message...',
+                        hoverColor: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    constraints: BoxConstraints(),
+                    icon: Icon(Icons.add_link),
+                    iconSize: 25,
+                    color: Theme.of(context).primaryColor,
+                    onPressed: () {},
+                  ),
+                  if (!inText) cameraButton,
+                ],
+              ),
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.only(left: 2.5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              color: Colors.white,
+            ),
+            child: sendButton,
+          ),
         ],
       ),
     );
@@ -144,36 +292,34 @@ class _ChatScreenState extends State<ChatScreen> {
         //   ),
         //   Icon(Icons.account_circle_outlined, size: 10)
         // ]),
-        title: Material(
-          borderRadius: BorderRadius.circular(5),
-          color: Theme.of(context).primaryColor,
-          child: InkWell(
-            onTap: () {},
-            splashColor: Theme.of(context).accentColor,
-            highlightColor: Theme.of(context).primaryColor.withOpacity(.7),
-            child: Container(
-              width: MediaQuery.of(context).size.width - 100,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.user.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      )),
-                  Text(
-                    'Online',
+        title: ElevatedButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => ProfileDialog(widget.user),
+            );
+          },
+          child: Row(children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.user.name,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.normal,
-                      color: Colors.blueGrey[100],
-                    ),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    )),
+                Text(
+                  'Online',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.blueGrey[100],
                   ),
-                ],
-              ),
+                )
+              ],
             ),
-          ),
+          ]),
         ),
         actions: <Widget>[
           IconButton(
@@ -209,33 +355,32 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
+                  color: Theme.of(context).accentColor,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20)),
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10)),
                   child: ListView.builder(
                       // reverse: true,
-                      padding: EdgeInsets.only(top: 0),
-                      itemCount: messages.length,
+                      padding: EdgeInsets.only(bottom: 10),
+                      itemCount: widget.user.msgs.length,
                       itemBuilder: (BuildContext context, int index) {
-                        Message lastMessage;
+                        constants.Message lastMessage;
                         if (index > 0) {
-                          lastMessage = messages[index - 1];
+                          lastMessage = widget.user.msgs[index - 1];
                         }
-                        final Message message = messages[index];
-                        final bool isMe = message.sender.id == currentUser.id;
+                        final constants.Message message =
+                            widget.user.msgs[index];
+                        final bool isMe = message.sender.id == widget.client.id;
+
                         return _buildMessage(lastMessage, message, isMe);
                       }),
                 ),
               ),
             ),
-            _buildMessageComposer()
+            _buildMessageComposer(),
           ],
         ),
       ),

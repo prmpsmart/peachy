@@ -1,37 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:peachy/screens/chat_screen.dart';
-import 'package:peachy/widgets/profile_dialog.dart';
-import 'data.dart';
+import 'package:peachy/constants.dart' as constants;
+import 'profile_dialog.dart';
 
 class ChatList extends StatelessWidget {
-  final manager;
-  ChatList(this.manager);
+  final constants.User client;
+  final int type;
+  ChatList(this.client, this.type);
 
   @override
   Widget build(BuildContext context) {
+    List<constants.User> users = [];
+
+    client.users.forEach((user) {
+      if (user.type == type) users.add(user);
+    });
+
     return Container(
       color: Colors.white,
       child: ListView.builder(
           scrollDirection: Axis.vertical,
-          itemCount: chats.length,
+          itemCount: users.length,
           itemBuilder: (BuildContext context, int index) {
-            Message chat = chats[index];
-            String name = chat.sender.name;
-            String time = chat.time;
-            String message = chat.text;
-            User user = chat.sender;
+            constants.User user = users[index];
+            constants.Message message = user.messages[index + 4];
+
+            String name = user.name;
+            String time = message.time;
+            String text = message.text;
+
+            if (type == 2 && message.sender != client) {
+              text = '$name : $text';
+            }
 
             return Column(
               children: <Widget>[
-                Divider(
-                  height: 0.0,
-                ),
+                Divider(height: 2.0),
                 ListTile(
+                  tileColor: message.unread
+                      ? Theme.of(context).primaryColor.withOpacity(.2)
+                      : Theme.of(context).accentColor,
                   onTap: () {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ChatScreen(user: chat.sender),
+                          builder: (context) =>
+                              ChatScreen(client: client, user: user),
                         ));
                   },
                   leading: user.icon.isNotEmpty
@@ -66,31 +80,31 @@ class ChatList extends StatelessWidget {
                         name,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: Colors.blueGrey,
-                            fontSize: 18,
+                            color: Colors.black.withRed(80),
+                            fontSize: 16,
                             fontWeight: FontWeight.bold),
                       ),
-                      chat.unread
+                      message.unread
                           ? Container(
-                              width: 23,
-                              height: 20,
+                              padding: EdgeInsets.all(3),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: Theme.of(context).primaryColor,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
-                                '500',
+                                '5555',
                                 style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold),
                               ),
                             )
                           : Text(''),
                       Text(
                         '29/09/2021',
-                        style: TextStyle(color: Colors.grey, fontSize: 10),
+                        style: TextStyle(
+                            color: Colors.grey.shade800, fontSize: 10),
                       )
                     ],
                   ),
@@ -101,34 +115,34 @@ class ChatList extends StatelessWidget {
                       children: <Widget>[
                         Flexible(
                           child: Text(
-                            message,
+                            text,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: Colors.blueGrey,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w300),
+                                color: Colors.grey.shade800,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400),
                           ),
                         ),
                         Container(
                             child: Row(children: [
-                          if (chat.sent)
+                          if (message.sent)
                             Icon(
-                              chat.sent
+                              message.sent
                                   ? Icons.check_circle_outline
                                   : Icons.history,
                               size: 13,
-                              color: Colors.grey,
+                              color: Colors.grey.shade800,
                             ),
-                          if (!chat.sent)
+                          if (!message.sent)
                             Icon(
-                              chat.sent
+                              message.sent
                                   ? Icons.check_circle_outline
                                   : Icons.history,
                               size: 13,
-                              color: Colors.grey,
+                              color: Colors.grey.shade800,
                             ),
-                          if (chat.sent || chat.unread)
+                          if (message.sent || message.unread)
                             SizedBox(
                               width: 2,
                             ),
@@ -136,8 +150,8 @@ class ChatList extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 2.0),
                             child: Text(
                               time,
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 10),
+                              style: TextStyle(
+                                  color: Colors.grey.shade800, fontSize: 10),
                             ),
                           )
                         ]))

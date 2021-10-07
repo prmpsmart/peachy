@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:peachy/widgets/chat_list.dart';
+import 'package:peachy/constants.dart' as data;
+import 'package:peachy/widgets/profile_dialog.dart' as profile;
 
 class Home extends StatefulWidget {
+  final data.User user;
+  Home(this.user);
+
   @override
   _HomeState createState() => _HomeState();
 }
@@ -27,10 +32,17 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.menu),
+          icon: Icon(Icons.account_circle),
           iconSize: 25.0,
           color: Colors.white,
-          onPressed: () => print('Menu'),
+          onPressed: () {
+            showDialog(
+                context: context,
+                builder: (BuildContext builder) {
+                  return profile.PersonalProfileDialog(widget.user);
+                });
+            print('Account Info');
+          },
         ),
         title: Text(
           'Peachy',
@@ -58,7 +70,11 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       ),
       body: TabBarView(
         controller: _tabController,
-        children: <Widget>[ChatList(0), ChatList(0), ChatList(0)],
+        children: <Widget>[
+          ChatList(widget.user, 1),
+          ChatList(widget.user, 2),
+          ChatList(widget.user, 3)
+        ],
       ),
       floatingActionButton: showFab
           ? FloatingActionButton(

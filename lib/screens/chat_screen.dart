@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:peachy/constants.dart' as constants;
 
@@ -89,110 +91,229 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   bool inText = false;
+  var textCont = TextEditingController();
+  var scroller = ScrollController();
 
   Widget _buildMessage(
       constants.Message lastMessage, constants.Message message, bool isMe) {
     bool sameAsLast = lastMessage?.sender == message.sender;
-    double offset = MediaQuery.of(context).size.width * .20;
+    double offset = MediaQuery.of(context).size.width * .15;
 
-    double top = 8;
+    double top = 10;
     if (sameAsLast) {
       top = 1;
     }
 
     ThemeData themeData = Theme.of(context);
 
+    var messageWidget = Flexible(
+      child: Container(
+        margin: isMe
+            ? EdgeInsets.only(
+                top: top,
+                right: 15,
+                left: offset,
+              )
+            : EdgeInsets.only(
+                top: top,
+                left: widget.user.type == 2 ? 5 : 15,
+                right: offset,
+              ),
+        padding: EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: isMe
+              ? themeData.primaryColor.withOpacity(.5)
+              : themeData.primaryColor.withOpacity(.2),
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(18),
+            topLeft: isMe ? Radius.circular(18) : Radius.circular(0),
+            bottomRight: Radius.circular(18),
+            topRight: isMe ? Radius.circular(0) : Radius.circular(18),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            if (!isMe && (widget.user.type == 2) && !sameAsLast)
+              Text(
+                message.sender.name,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            if (!isMe && widget.user.type == 2)
+              SizedBox(
+                height: 4,
+              ),
+            if (message.type == 'image')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(18),
+                    topLeft: isMe ? Radius.circular(18) : Radius.circular(0),
+                    bottomRight: Radius.circular(18),
+                    topRight: isMe ? Radius.circular(0) : Radius.circular(18),
+                  ),
+                  child: Image.asset('assets/ic_male_ph.jpg',
+                      fit: BoxFit.scaleDown),
+                ),
+              ),
+            if (message.type == 'audio') AudioChat(message, isMe),
+            if (message.type == 'audio') SizedBox(height: 2),
+            Text(
+              message.text,
+              style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400),
+            ),
+            Container(
+              padding: EdgeInsets.only(top: 2),
+              alignment: Alignment.bottomRight,
+              width: isMe ? 48 : 36,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                    // crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          message.time,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                      if (isMe)
+                        SizedBox(
+                          width: 2,
+                        ),
+                      if (isMe)
+                        Icon(
+                          message.sent
+                              ? Icons.check_circle_outline
+                              : Icons.history,
+                          size: 10,
+                          color: Colors.grey.shade800,
+                        )
+                    ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
     final msg = Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
-        Flexible(
-          child: Container(
-              margin: isMe
-                  ? EdgeInsets.only(
-                      top: top,
-                      right: 15,
-                      left: offset,
-                    )
-                  : EdgeInsets.only(
-                      top: top,
-                      left: 15,
-                      right: offset,
+        isMe
+            ? messageWidget
+            : Flexible(
+                child: Row(children: [
+                  if (widget.user.type == 2)
+                    Container(
+                      padding: EdgeInsets.zero,
+                      margin: EdgeInsets.only(left: 5, top: 0),
+                      decoration: BoxDecoration(
+                          color: sameAsLast
+                              ? Colors.transparent
+                              : Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(25)),
+                      child: RawMaterialButton(
+                          constraints: BoxConstraints(),
+                          onPressed: () => showDialog(
+                              context: context,
+                              builder: (context) =>
+                                  ProfileDialog(widget.user, widget.client)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                          child:
+                              Icon(sameAsLast ? null : Icons.person, size: 40)),
                     ),
-              padding: EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                  color: isMe
-                      ? themeData.primaryColor.withOpacity(.5)
-                      : themeData.primaryColor.withOpacity(.2),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Column(
-                crossAxisAlignment:
-                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: [
-                  if (!isMe && widget.user.type == 2)
-                    Text(
-                      message.sender.name,
-                      style: TextStyle(
-                          // color: isMe ? Colors.white : Colors.blueGrey,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  if (!isMe && widget.user.type == 2)
-                    SizedBox(
-                      height: 4,
-                    ),
-                  if (message.type == 'image')
-                    Image.asset('assets/ic_male_ph.jpg', fit: BoxFit.scaleDown),
-                  if (message.type == 'audio') AudioChat(message, isMe),
-                  Text(
-                    message.text,
-                    style: TextStyle(
-                        // color: isMe ? Colors.white : Colors.blueGrey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400),
-                  ),
-                  Container(
-                    padding: EdgeInsets.only(top: 2),
-                    alignment: Alignment.bottomRight,
-                    width: isMe ? 48 : 36,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2.0),
-                              child: Text(
-                                message.time,
-                                textAlign: TextAlign.end,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ),
-                            ),
-                            if (isMe)
-                              SizedBox(
-                                width: 2,
-                              ),
-                            if (isMe)
-                              Icon(
-                                message.sent
-                                    ? Icons.check_circle_outline
-                                    : Icons.history,
-                                size: 10,
-                                color: Colors.grey.shade800,
-                              )
-                          ]),
-                    ),
-                  ),
-                ],
-              )),
-        )
+                  messageWidget
+                ]),
+              )
       ],
     );
 
     return msg;
+  }
+
+  Widget _buildChannel(constants.Message message) {
+    ThemeData themeData = Theme.of(context);
+
+    var messageWidget = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          margin: EdgeInsets.only(
+            top: 10,
+            left: 15,
+            right: 15,
+          ),
+          padding: EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: themeData.primaryColor.withOpacity(.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (message.type == 'image')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.asset('assets/ic_male_ph.jpg',
+                        fit: BoxFit.scaleDown),
+                  ),
+                ),
+              if (message.type == 'audio') AudioChat(message, false),
+              if (message.type == 'audio') SizedBox(height: 2),
+              Text(
+                message.text,
+                style: TextStyle(
+                    fontFamily: 'Times New Roman',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400),
+              ),
+              Container(
+                padding: EdgeInsets.only(top: 2),
+                alignment: Alignment.bottomRight,
+                width: 36,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text(
+                            message.time,
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                        )
+                      ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return messageWidget;
   }
 
   Widget _buildMessageComposer() {
@@ -200,7 +321,29 @@ class _ChatScreenState extends State<ChatScreen> {
       constraints: BoxConstraints(),
       icon: Icon(inText ? Icons.send : Icons.mic),
       iconSize: 30,
-      onPressed: () {},
+      onPressed: () {
+        String text = textCont.text;
+        String istext = text.replaceAll(' ', '');
+
+        if (istext.isNotEmpty) {
+          constants.Message message = constants.Message(
+            text: text,
+            sender: widget.client,
+            time: '5:18 AM',
+            sent: false,
+          );
+          widget.user.msgs.add(message);
+        }
+        inText = false;
+        textCont.text = '';
+        setState(() {});
+
+        Timer(Duration(microseconds: 200), () {
+          scroller.animateTo(scroller.position.maxScrollExtent + 100,
+              duration: Duration(seconds: 1),
+              curve: Curves.fastLinearToSlowEaseIn);
+        });
+      },
       color: Theme.of(context).primaryColor,
     );
     var cameraButton = IconButton(
@@ -216,7 +359,7 @@ class _ChatScreenState extends State<ChatScreen> {
       margin: EdgeInsets.only(bottom: 7, top: 7),
       color: Colors.transparent,
       child: Row(
-        children: <Widget>[
+        children: [
           Expanded(
             child: Container(
               margin: EdgeInsets.only(right: 2.5),
@@ -235,6 +378,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Expanded(
                     child: TextField(
+                      controller: textCont,
                       textCapitalization: TextCapitalization.sentences,
                       onChanged: (value) {
                         if (value.isNotEmpty) {
@@ -285,52 +429,66 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         toolbarHeight: 45,
         elevation: 0,
-        // leading: Row(children: [
-        //   IconButton(
-        //     icon: Icon(Icons.arrow_back, size: 10, color: Colors.white),
-        //     onPressed: null,
-        //   ),
-        //   Icon(Icons.account_circle_outlined, size: 10)
-        // ]),
-        title: ElevatedButton(
+        leadingWidth: 70,
+        leading: Container(
+          margin: EdgeInsets.all(3),
+          child: RawMaterialButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            child: Row(children: [
+              Icon(Icons.arrow_back, size: 25, color: Colors.white),
+              Icon(Icons.person, size: 35, color: Colors.white)
+            ]),
+          ),
+        ),
+        title: MaterialButton(
           onPressed: () {
             showDialog(
               context: context,
-              builder: (context) => ProfileDialog(widget.user),
+              builder: (context) => ProfileDialog(widget.user, widget.client),
             );
           },
           child: Row(children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.user.name,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.user.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      )),
+                  Text(
+                    'Online',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    )),
-                Text(
-                  'Online',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.normal,
-                    color: Colors.blueGrey[100],
-                  ),
-                )
-              ],
+                      fontSize: 13,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.blueGrey[100],
+                    ),
+                  )
+                ],
+              ),
             ),
           ]),
         ),
         actions: <Widget>[
           IconButton(
-            constraints: BoxConstraints(),
-            icon: Icon(Icons.call),
-            iconSize: 25,
-            color: Colors.white,
+            splashRadius: 20,
+            icon: Icon(
+              Icons.call,
+              size: 25,
+              color: Colors.white,
+            ),
             onPressed: () => print('Make Voice Call'),
             tooltip: 'Make Voice Call',
           ),
           IconButton(
+            splashRadius: 20,
             constraints: BoxConstraints(),
             icon: Icon(Icons.video_call),
             iconSize: 25,
@@ -339,6 +497,7 @@ class _ChatScreenState extends State<ChatScreen> {
             tooltip: 'Make Video Call',
           ),
           IconButton(
+            splashRadius: 20,
             icon: Icon(Icons.more_vert),
             constraints: BoxConstraints(),
             iconSize: 25,
@@ -363,7 +522,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       topLeft: Radius.circular(10),
                       topRight: Radius.circular(10)),
                   child: ListView.builder(
-                      // reverse: true,
+                      controller: scroller,
                       padding: EdgeInsets.only(bottom: 10),
                       itemCount: widget.user.msgs.length,
                       itemBuilder: (BuildContext context, int index) {
@@ -374,13 +533,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         final constants.Message message =
                             widget.user.msgs[index];
                         final bool isMe = message.sender.id == widget.client.id;
-
+                        if (widget.user.type == 3)
+                          return _buildChannel(message);
                         return _buildMessage(lastMessage, message, isMe);
                       }),
                 ),
               ),
             ),
-            _buildMessageComposer(),
+            if (widget.user.type != 3) _buildMessageComposer(),
           ],
         ),
       ),

@@ -27,8 +27,8 @@ void main() {
     user9
   ];
 
-  final User currentUser =
-      User(id: 'prmpsmart', name: 'PRMPSmart Peach', users: _users);
+  final User currentUser = User(
+      id: 'prmpsmart', name: 'PRMPSmart Peach', users: _users, key: 'princerm');
 
   List<Message> messages = [
     Message(
@@ -107,6 +107,12 @@ expectations as a result i created this mod which i think looks Great, Let me kn
         sent: false,
         unread: true),
     Message(
+        sender: user1,
+        time: '4: 30 PM',
+        text: 'This is user 1, of my first flutter app.',
+        sent: false,
+        unread: true),
+    Message(
         sender: currentUser,
         time: '5: 00 PM',
         text: 'Hey I\'m user 2, how are you doing?',
@@ -115,7 +121,7 @@ expectations as a result i created this mod which i think looks Great, Let me kn
     Message(
         sender: user1,
         time: '4: 30 PM',
-        text: 'Miracle Peter',
+        text: 'Apata Miracle Peter',
         sent: false,
         type: 'image',
         data: 'I love you!',

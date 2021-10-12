@@ -1,17 +1,199 @@
 import 'package:flutter/material.dart';
 import 'package:peachy/constants.dart' as data;
+import 'package:peachy/screens/chat_screen.dart';
 import 'package:peachy/widgets/extras.dart';
+
+SizedBox iconButton(IconData icon, Function function, BuildContext context) {
+  return SizedBox(
+    height: 35,
+    width: 35,
+    child: Material(
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(17.5),
+      color: Theme.of(context).primaryColor,
+      child: ElevatedButton(
+        onPressed: function,
+        child: Icon(icon, size: 20, color: Theme.of(context).accentColor),
+      ),
+    ),
+  );
+}
+
+RawMaterialButton switchIconButton(
+    IconData icon, Function function, BuildContext context,
+    {double wid = 25, double size = 20}) {
+  var btn = RawMaterialButton(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.5)),
+    constraints: BoxConstraints(minWidth: wid, minHeight: wid),
+    child: Icon(
+      icon,
+      size: size,
+      color: Theme.of(context).accentColor,
+    ),
+    fillColor: Theme.of(context).primaryColor,
+    onPressed: () => function(),
+  );
+  return btn;
+}
+
+class ContentTabView extends StatefulWidget {
+  final data.User user;
+  final data.User client;
+  final bool member;
+
+  ContentTabView(this.user, this.client, {this.member = false});
+
+  @override
+  Content_TabViewState createState() => Content_TabViewState();
+}
+
+class Content_TabViewState extends State<ContentTabView> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: ListView.builder(
+          scrollDirection: Axis.vertical,
+          itemCount: widget.client.users.length,
+          itemBuilder: (BuildContext context, int index) {
+            data.User user = widget.client.users[index];
+            data.Message message = user.messages[index + 4];
+
+            String name = user.name;
+            String text = message.text;
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ChatScreen(client: widget.client, user: user),
+                    ));
+              },
+              child: Container(
+                color: Theme.of(context).accentColor,
+                child: Column(
+                  children: [
+                    // Divider(height: 2.0),
+                    Row(
+                      children: [
+                        switchIconButton(Icons.person, () {}, context,
+                            wid: 35, size: 20),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(name,
+                                      style: TextStyle(
+                                          color: Colors.black.withRed(80),
+                                          fontWeight: FontWeight.bold)),
+                                  if (message.sent && widget.member)
+                                    Container(
+                                      padding: EdgeInsets.all(3),
+                                      margin: EdgeInsets.only(right: 5),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).primaryColor,
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                      child: Text(
+                                        'Admin',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (!widget.member)
+                                    Container(
+                                      padding: EdgeInsets.all(3),
+                                      margin: EdgeInsets.only(right: 5),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).primaryColor,
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                      child: Text(
+                                        user.name,
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (!widget.member)
+                                    Text(
+                                      '29/09/2021',
+                                      style: TextStyle(
+                                          color: Colors.grey.shade800,
+                                          fontSize: 10),
+                                    )
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: Text(text,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 10)),
+                                  ),
+                                  if (!widget.member)
+                                    Text(
+                                      message.time,
+                                      style: TextStyle(
+                                          color: Colors.grey.shade800,
+                                          fontSize: 10),
+                                    )
+                                ],
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            );
+          }),
+    );
+  }
+}
 
 class ProfileDialog extends StatefulWidget {
   final data.User user;
+  final data.User client;
 
-  ProfileDialog(this.user);
+  ProfileDialog(this.user, this.client);
 
   @override
   _ProfileDialogState createState() => _ProfileDialogState();
 }
 
-class _ProfileDialogState extends State<ProfileDialog> {
+class _ProfileDialogState extends State<ProfileDialog>
+    with SingleTickerProviderStateMixin {
+  TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tabController = TabController(
+        vsync: this, initialIndex: 0, length: widget.user.type == 1 ? 3 : 4);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
+
   @override
   build(BuildContext context) {
     double padding = 10;
@@ -30,14 +212,35 @@ class _ProfileDialogState extends State<ProfileDialog> {
           type = 'Group';
           break;
         }
-      case 1:
+      case 3:
         {
           type = 'Channel';
           break;
         }
     }
 
+    var tabs = [
+      if (widget.user.type != 1)
+        Tab(
+            icon: Icon(Icons.person_search),
+            child: Text('Members',
+                style: TextStyle(fontSize: 10, fontFamily: 'Times New Roman'))),
+      Tab(
+          icon: Icon(Icons.file_copy_outlined),
+          child: Text('Media',
+              style: TextStyle(fontSize: 10, fontFamily: 'Times New Roman'))),
+      Tab(
+          icon: Icon(Icons.computer),
+          child: Text('Docs',
+              style: TextStyle(fontSize: 10, fontFamily: 'Times New Roman'))),
+      Tab(
+          icon: Icon(Icons.link_sharp),
+          child: Text('Links',
+              style: TextStyle(fontSize: 10, fontFamily: 'Times New Roman')))
+    ];
+
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(horizontal: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(padding),
       ),
@@ -64,7 +267,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   'Apata Miracle Peter',
                   style: TextStyle(
                     color: Theme.of(context).primaryColor,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontFamily: 'Times New Roman',
                     fontWeight: FontWeight.bold,
                   ),
@@ -74,19 +277,21 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     Container(
-                      padding: EdgeInsets.only(right: 10),
-                      child: ElevatedButton(
-                        onPressed: null,
-                        child: Text(
-                          'ID :',
-                          style: TextStyle(
-                            fontFamily: 'Times New Roman',
-                            // backgroundColor: Theme.of(context).primaryColor,
-                            color: Theme.of(context).primaryColor,
-                            // color: Theme.of(context).accentColor,
-                            // fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      padding: EdgeInsets.all(2),
+                      margin: EdgeInsets.only(right: 5),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        'Id : ',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontFamily: 'Times New Roman',
+                          // backgroundColor: Theme.of(context).primaryColor,
+                          color: Theme.of(context).accentColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -155,6 +360,39 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   ),
                 ),
                 Divider(height: 5),
+                Column(
+                  children: [
+                    Container(
+                      height: 55,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.blue),
+                      child: TabBar(
+                        tabs: tabs,
+                        indicatorWeight: 5,
+                        indicatorColor: Colors.white,
+                        controller: _tabController,
+                        labelStyle: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Container(
+                      height: 300,
+                      child: TabBarView(controller: _tabController, children: [
+                        if (widget.user.type != 1)
+                          ContentTabView(
+                            widget.user,
+                            widget.client,
+                            member: true,
+                          ),
+                        ContentTabView(widget.user, widget.client),
+                        ContentTabView(widget.user, widget.client),
+                        ContentTabView(widget.user, widget.client)
+                      ]),
+                    )
+                  ],
+                ),
+                Divider(height: 5),
                 SizedBox(height: 5),
                 iconNButton('Block', Icons.block),
                 SizedBox(height: 5),
@@ -180,52 +418,73 @@ class _ProfileDialogState extends State<ProfileDialog> {
   }
 }
 
-SizedBox iconButton(IconData icon, Function function, BuildContext context) {
-  return SizedBox(
-    height: 35,
-    width: 35,
-    child: Material(
-      clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(17.5),
-      color: Theme.of(context).primaryColor,
-      child: ElevatedButton(
-        onPressed: function,
-        // splashColor: Theme.of(context).accentColor.withOpacity(.5),
-        child: Icon(icon, size: 20, color: Theme.of(context).accentColor),
-      ),
-    ),
-  );
-}
-
-class PersonalProfileDialog extends StatefulWidget {
+class ClientProfileDialog extends StatefulWidget {
   final data.User user;
 
-  PersonalProfileDialog(this.user);
+  ClientProfileDialog(this.user);
 
   @override
-  _PersonalProfileDialogState createState() => _PersonalProfileDialogState();
+  _ClientProfileDialogState createState() => _ClientProfileDialogState();
 }
 
-class _PersonalProfileDialogState extends State<PersonalProfileDialog> {
+class _ClientProfileDialogState extends State<ClientProfileDialog> {
+  bool usernameBool = false;
+  bool idBool = false;
+  bool keyBool = false;
+
+  IconData editIcon = Icons.edit;
+  IconData saveIcon = Icons.save;
+
+  TextEditingController usernameTC = TextEditingController();
+  TextEditingController idTC = TextEditingController();
+  TextEditingController keyTC = TextEditingController();
+
   @override
   build(BuildContext context) {
     double padding = 10;
     double radius = 45;
 
+    usernameTC.text = widget.user.name;
+    idTC.text = widget.user.id;
+    keyTC.text = widget.user.key;
+
+    getTextWidget(
+            String text, TextEditingController cont, bool b, FontWeight fw) =>
+        b
+            ? Expanded(
+                child: TextField(
+                  controller: cont,
+                  style: TextStyle(
+                    fontFamily: 'Times New Roman',
+                    // color: Theme.of(context).primaryColor,
+                    fontSize: 15,
+                    fontWeight: fw,
+                  ),
+                ),
+              )
+            : Text(
+                text,
+                style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 15,
+                  fontWeight: fw,
+                ),
+              );
+
     return Dialog(
       shape: RoundedRectangleBorder(
-          // borderRadius: BorderRadius.circular(padding),
-          ),
-      elevation: 1,
+        borderRadius: BorderRadius.circular(padding),
+      ),
+      elevation: 0,
       backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
         children: [
           Container(
-            padding: EdgeInsets.only(
-                left: padding,
-                top: padding + radius,
-                bottom: padding,
-                right: padding),
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+                padding, padding + radius, padding, padding),
             margin: EdgeInsets.only(top: radius),
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
@@ -235,66 +494,134 @@ class _PersonalProfileDialogState extends State<PersonalProfileDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Username: ',
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontSize: 13,
-                        fontFamily: 'Times New Roman',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Apata Miracle Peter',
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontSize: 13,
-                        fontFamily: 'Times New Roman',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // ElevatedButton(onPressed: null, child: Icon(Icons.edit))
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.only(right: 10),
-                      child: ElevatedButton(
-                        onPressed: null,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Container(
+                        // width: 80,
+                        padding: EdgeInsets.all(2),
+                        margin: EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                         child: Text(
-                          'ID :',
+                          'Username : ',
                           style: TextStyle(
+                            color: Theme.of(context).accentColor,
+                            fontSize: 13,
                             fontFamily: 'Times New Roman',
-                            // backgroundColor: Theme.of(context).primaryColor,
-                            color: Theme.of(context).primaryColor,
-                            // color: Theme.of(context).accentColor,
-                            // fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ),
-                    Text(
-                      'prmpsmart',
-                      style: TextStyle(
-                        fontFamily: 'Times New Roman',
-                        color: Theme.of(context).primaryColor,
-                        // backgroundColor: Colors.yellow,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                      getTextWidget(widget.user.name, usernameTC, usernameBool,
+                          FontWeight.bold),
+                      SizedBox(
+                          height: 25,
+                          child: switchIconButton(
+                              usernameBool ? saveIcon : editIcon, () {
+                            setState(() {
+                              if (usernameBool) {
+                                usernameBool = false;
+                                widget.user.name = usernameTC.text;
+                              } else
+                                usernameBool = true;
+                            });
+                          }, context))
+                    ],
+                  ),
                 ),
-                SizedBox(height: 5),
-                Divider(height: 5),
-                SizedBox(height: 5),
-                iconNButton('Settings', Icons.settings),
+                Divider(height: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        padding: EdgeInsets.all(2),
+                        margin: EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          'Id : ',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontFamily: 'Times New Roman',
+                            // backgroundColor: Theme.of(context).primaryColor,
+                            color: Theme.of(context).accentColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      getTextWidget(
+                          widget.user.id, idTC, idBool, FontWeight.w600),
+                      SizedBox(
+                          height: 25,
+                          child: switchIconButton(idBool ? saveIcon : editIcon,
+                              () {
+                            setState(() {
+                              if (idBool) {
+                                idBool = false;
+                                widget.user.id = idTC.text;
+                              } else
+                                idBool = true;
+                            });
+                          }, context))
+                    ],
+                  ),
+                ),
+                Divider(height: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        padding: EdgeInsets.all(2),
+                        margin: EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          'Key : ',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontFamily: 'Times New Roman',
+                            // backgroundColor: Theme.of(context).primaryColor,
+                            color: Theme.of(context).accentColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      getTextWidget(
+                          widget.user.key, keyTC, keyBool, FontWeight.w600),
+                      SizedBox(
+                          height: 25,
+                          child: switchIconButton(keyBool ? saveIcon : editIcon,
+                              () {
+                            setState(() {
+                              if (keyBool) {
+                                keyBool = false;
+                                widget.user.id = idTC.text;
+                              } else
+                                keyBool = true;
+                            });
+                          }, context))
+                    ],
+                  ),
+                ),
+                Divider(height: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: iconNButton('Settings', Icons.settings),
+                ),
               ],
             ),
           ),

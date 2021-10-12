@@ -14,6 +14,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   TabController _tabController;
   bool showFab = true;
+  bool online = true;
 
   @override
   void initState() {
@@ -39,14 +40,27 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
             showDialog(
                 context: context,
                 builder: (BuildContext builder) {
-                  return profile.PersonalProfileDialog(widget.user);
+                  return profile.ClientProfileDialog(widget.user);
                 });
             print('Account Info');
           },
         ),
-        title: Text(
-          'Peachy',
-          style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Peachy',
+              style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold),
+            ),
+            Tooltip(
+              message: online ? 'Online' : 'Offline',
+              child: Icon(
+                online
+                    ? Icons.check_circle_rounded
+                    : Icons.highlight_off_outlined,
+              ),
+            )
+          ],
         ),
         elevation: 2,
         actions: <Widget>[
@@ -70,7 +84,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       ),
       body: TabBarView(
         controller: _tabController,
-        children: <Widget>[
+        children: [
           ChatList(widget.user, 1),
           ChatList(widget.user, 2),
           ChatList(widget.user, 3)

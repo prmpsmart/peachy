@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class User {
   var id;
   String name;
+  String key;
   String icon;
   int type = 1;
   List<Message> msgs;
@@ -14,6 +15,7 @@ class User {
       this.icon = '',
       this.type = 1,
       this.msgs,
+      this.key = '',
       this.users});
 
   set messages(List<Message> messages) => msgs = messages;
@@ -33,8 +35,8 @@ class Message {
     this.sender,
     this.time,
     this.text,
-    this.sent,
-    this.unread,
+    this.sent = false,
+    this.unread = false,
     this.type = 'text',
     this.data = '',
   });

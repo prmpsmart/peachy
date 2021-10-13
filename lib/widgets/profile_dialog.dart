@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:peachy/constants.dart' as data;
-import 'package:peachy/screens/chat_screen.dart';
-import 'package:peachy/widgets/extras.dart';
+import '../constants.dart';
+import '../screens/chat_screen.dart';
+import '../backend/client.dart' as _client;
+import '../backend/core.dart' as _core;
 
 SizedBox iconButton(IconData icon, Function function, BuildContext context) {
   return SizedBox(
@@ -37,11 +38,11 @@ RawMaterialButton switchIconButton(
 }
 
 class ContentTabView extends StatefulWidget {
-  final data.User user;
-  final data.User client;
-  final bool member;
+  _core.p_User_Base user;
+  _client.User ownUser;
+  bool member;
 
-  ContentTabView(this.user, this.client, {this.member = false});
+  ContentTabView(this.user, this.ownUser, {this.member = false});
 
   @override
   Content_TabViewState createState() => Content_TabViewState();
@@ -54,13 +55,13 @@ class Content_TabViewState extends State<ContentTabView> {
       color: Colors.white,
       child: ListView.builder(
           scrollDirection: Axis.vertical,
-          itemCount: widget.client.users.length,
+          itemCount: widget.ownUser.users?.length,
           itemBuilder: (BuildContext context, int index) {
-            data.User user = widget.client.users[index];
-            data.Message message = user.messages[index + 4];
+            _client.User user = widget.ownUser.users[index];
+            _core.Tag message = user.chats[index + 4];
 
             String name = user.name;
-            String text = message.text;
+            String text = message['text'];
 
             return GestureDetector(
               onTap: () {
@@ -68,7 +69,7 @@ class Content_TabViewState extends State<ContentTabView> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          ChatScreen(client: widget.client, user: user),
+                          ChatScreen(ownUser: widget.ownUser, user: user),
                     ));
               },
               child: Container(
@@ -92,7 +93,7 @@ class Content_TabViewState extends State<ContentTabView> {
                                       style: TextStyle(
                                           color: Colors.black.withRed(80),
                                           fontWeight: FontWeight.bold)),
-                                  if (message.sent && widget.member)
+                                  if (message['sent'] && widget.member)
                                     Container(
                                       padding: EdgeInsets.all(3),
                                       margin: EdgeInsets.only(right: 5),
@@ -148,7 +149,7 @@ class Content_TabViewState extends State<ContentTabView> {
                                   ),
                                   if (!widget.member)
                                     Text(
-                                      message.time,
+                                      message.get_date_time(),
                                       style: TextStyle(
                                           color: Colors.grey.shade800,
                                           fontSize: 10),
@@ -170,10 +171,10 @@ class Content_TabViewState extends State<ContentTabView> {
 }
 
 class ProfileDialog extends StatefulWidget {
-  final data.User user;
-  final data.User client;
+  _core.p_User_Base user;
+  _client.User ownUser;
 
-  ProfileDialog(this.user, this.client);
+  ProfileDialog(this.user, this.ownUser);
 
   @override
   _ProfileDialogState createState() => _ProfileDialogState();
@@ -382,12 +383,12 @@ class _ProfileDialogState extends State<ProfileDialog>
                         if (widget.user.type != 1)
                           ContentTabView(
                             widget.user,
-                            widget.client,
+                            widget.ownUser,
                             member: true,
                           ),
-                        ContentTabView(widget.user, widget.client),
-                        ContentTabView(widget.user, widget.client),
-                        ContentTabView(widget.user, widget.client)
+                        ContentTabView(widget.user, widget.ownUser),
+                        ContentTabView(widget.user, widget.ownUser),
+                        ContentTabView(widget.user, widget.ownUser)
                       ]),
                     )
                   ],
@@ -419,7 +420,7 @@ class _ProfileDialogState extends State<ProfileDialog>
 }
 
 class ClientProfileDialog extends StatefulWidget {
-  final data.User user;
+  _client.User user;
 
   ClientProfileDialog(this.user);
 
@@ -428,14 +429,14 @@ class ClientProfileDialog extends StatefulWidget {
 }
 
 class _ClientProfileDialogState extends State<ClientProfileDialog> {
-  bool usernameBool = false;
+  bool nameBool = false;
   bool idBool = false;
   bool keyBool = false;
 
   IconData editIcon = Icons.edit;
   IconData saveIcon = Icons.save;
 
-  TextEditingController usernameTC = TextEditingController();
+  TextEditingController nameTC = TextEditingController();
   TextEditingController idTC = TextEditingController();
   TextEditingController keyTC = TextEditingController();
 
@@ -444,9 +445,13 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
     double padding = 10;
     double radius = 45;
 
-    usernameTC.text = widget.user.name;
-    idTC.text = widget.user.id;
-    keyTC.text = widget.user.key;
+    String name = widget.user?.name ?? '';
+    String id = widget.user?.id ?? '';
+    String key = widget.user?.key ?? '';
+
+    nameTC.text = name;
+    idTC.text = id;
+    keyTC.text = key;
 
     getTextWidget(
             String text, TextEditingController cont, bool b, FontWeight fw) =>
@@ -516,18 +521,17 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                           ),
                         ),
                       ),
-                      getTextWidget(widget.user.name, usernameTC, usernameBool,
-                          FontWeight.bold),
+                      getTextWidget(name, nameTC, nameBool, FontWeight.bold),
                       SizedBox(
                           height: 25,
                           child: switchIconButton(
-                              usernameBool ? saveIcon : editIcon, () {
+                              nameBool ? saveIcon : editIcon, () {
                             setState(() {
-                              if (usernameBool) {
-                                usernameBool = false;
-                                widget.user.name = usernameTC.text;
+                              if (nameBool) {
+                                nameBool = false;
+                                widget.user?.name = nameTC.text;
                               } else
-                                usernameBool = true;
+                                nameBool = true;
                             });
                           }, context))
                     ],
@@ -558,8 +562,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                           ),
                         ),
                       ),
-                      getTextWidget(
-                          widget.user.id, idTC, idBool, FontWeight.w600),
+                      getTextWidget(id, idTC, idBool, FontWeight.w600),
                       SizedBox(
                           height: 25,
                           child: switchIconButton(idBool ? saveIcon : editIcon,
@@ -567,7 +570,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                             setState(() {
                               if (idBool) {
                                 idBool = false;
-                                widget.user.id = idTC.text;
+                                id = idTC.text;
                               } else
                                 idBool = true;
                             });
@@ -600,8 +603,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                           ),
                         ),
                       ),
-                      getTextWidget(
-                          widget.user.key, keyTC, keyBool, FontWeight.w600),
+                      getTextWidget(key, keyTC, keyBool, FontWeight.w600),
                       SizedBox(
                           height: 25,
                           child: switchIconButton(keyBool ? saveIcon : editIcon,
@@ -609,7 +611,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                             setState(() {
                               if (keyBool) {
                                 keyBool = false;
-                                widget.user.id = idTC.text;
+                                key = keyTC.text;
                               } else
                                 keyBool = true;
                             });
@@ -620,7 +622,14 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                 Divider(height: 2),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: iconNButton('Settings', Icons.settings),
+                  child: iconNButton('Change User', Icons.person,
+                      func: () => Navigator.pushReplacementNamed(
+                          context, '/createUser')),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: iconNButton('Settings', Icons.settings,
+                      func: () => print('Settings')),
                 ),
               ],
             ),

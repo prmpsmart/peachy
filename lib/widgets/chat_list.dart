@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:peachy/screens/chat_screen.dart';
-import 'package:peachy/constants.dart' as constants;
+import '../screens/chat_screen.dart';
+
+import '../backend/client.dart' as _client;
+import '../backend/core.dart' as _core;
 import 'profile_dialog.dart';
 
 class ChatList extends StatelessWidget {
-  final constants.User client;
-  final int type;
-  ChatList(this.client, this.type);
+  _client.User ownUser;
+  int type;
+  ChatList(this.ownUser, this.type);
 
   @override
   Widget build(BuildContext context) {
-    List<constants.User> users = [];
+    List<_client.User> users = [];
 
-    client.users.forEach((user) {
+    ownUser?.contacts?.objects?.forEach((user) {
       if (user.type == type) users.add(user);
     });
 
@@ -22,16 +24,18 @@ class ChatList extends StatelessWidget {
           scrollDirection: Axis.vertical,
           itemCount: users.length,
           itemBuilder: (BuildContext context, int index) {
-            constants.User user = users[index];
-            constants.Message message = user.messages[index + 4];
+            _client.User user = users[index];
+            _core.Tag message = user.chats[index + 4];
 
             String name = user.name;
-            String time = message.time;
-            String text = message.text;
+            String time = message.get_date_time();
+            String text = message['text'];
 
-            if (type == 2 && message.sender != client) {
+            if (type == 2 && message['sender'] != ownUser) {
               text = '$name : $text';
             }
+            bool unread = message['unread'];
+            bool sent = message['sent'];
 
             return GestureDetector(
                 onTap: () {
@@ -39,7 +43,7 @@ class ChatList extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            ChatScreen(client: client, user: user),
+                            ChatScreen(ownUser: ownUser, user: user),
                       ));
                 },
                 child: Column(children: [
@@ -49,7 +53,7 @@ class ChatList extends StatelessWidget {
                       SizedBox(
                         height: 60,
                         child: Container(
-                            color: message.unread
+                            color: unread
                                 ? Theme.of(context).primaryColor.withOpacity(.2)
                                 : Theme.of(context).accentColor,
                             child: Row(
@@ -79,7 +83,7 @@ class ChatList extends StatelessWidget {
                                                 context: context,
                                                 builder: (context) {
                                                   return ProfileDialog(
-                                                      user, client);
+                                                      user, ownUser);
                                                 });
                                           },
                                         ),
@@ -105,7 +109,7 @@ class ChatList extends StatelessWidget {
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold),
                                             ),
-                                            message.unread
+                                            unread
                                                 ? Container(
                                                     padding: EdgeInsets.all(3),
                                                     alignment: Alignment.center,
@@ -154,26 +158,25 @@ class ChatList extends StatelessWidget {
                                             ),
                                             Container(
                                                 child: Row(children: [
-                                              if (message.sent)
+                                              if (sent)
                                                 Icon(
-                                                  message.sent
+                                                  sent
                                                       ? Icons
                                                           .check_circle_outline
                                                       : Icons.history,
                                                   size: 13,
                                                   color: Colors.grey.shade800,
                                                 ),
-                                              if (!message.sent)
+                                              if (!sent)
                                                 Icon(
-                                                  message.sent
+                                                  sent
                                                       ? Icons
                                                           .check_circle_outline
                                                       : Icons.history,
                                                   size: 13,
                                                   color: Colors.grey.shade800,
                                                 ),
-                                              if (message.sent ||
-                                                  message.unread)
+                                              if (sent || unread)
                                                 SizedBox(
                                                   width: 2,
                                                 ),

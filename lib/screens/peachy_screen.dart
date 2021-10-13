@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:peachy/widgets/chat_list.dart';
-import 'package:peachy/constants.dart' as data;
-import 'package:peachy/widgets/profile_dialog.dart' as profile;
+import '../widgets/chat_list.dart';
+import '../widgets/profile_dialog.dart' as profile;
+import '../backend/client.dart' as _client;
 
-class Home extends StatefulWidget {
-  final data.User user;
-  Home(this.user);
+class PeachyHome extends StatefulWidget {
+  _client.User user;
+  PeachyHome(this.user);
 
   @override
-  _HomeState createState() => _HomeState();
+  _PeachyHomeState createState() => _PeachyHomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
-  TabController _tabController;
+class _PeachyHomeState extends State<PeachyHome>
+    with SingleTickerProviderStateMixin {
+  TabController? _tabController;
   bool showFab = true;
   bool online = true;
 
@@ -21,14 +22,19 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     super.initState();
 
     _tabController = TabController(vsync: this, initialIndex: 0, length: 3);
-    _tabController.addListener(() {
-      showFab = _tabController.index == 0;
+    _tabController?.addListener(() {
+      showFab = _tabController?.index == 0;
       setState(() {});
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    _client.User _user =
+        ModalRoute.of(context)!.settings.arguments as _client.User;
+
+    widget.user = _user;
+
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(

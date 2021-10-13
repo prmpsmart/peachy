@@ -1,12 +1,11 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:peachy/constants.dart' as constants;
-
-import 'package:peachy/widgets/profile_dialog.dart';
+import '../widgets/profile_dialog.dart';
+import '../backend/client.dart' as _client;
+import '../backend/core.dart' as _core;
 
 class AudioChat extends StatefulWidget {
-  final constants.Message message;
+  final _core.Tag message;
   final bool isMe;
   const AudioChat(this.message, this.isMe);
 
@@ -80,10 +79,10 @@ class _AudioChatState extends State<AudioChat> {
 }
 
 class ChatScreen extends StatefulWidget {
-  final constants.User client;
-  final constants.User user;
+  final _client.User ownUser;
+  final _client.User user;
 
-  ChatScreen({this.client, this.user});
+  ChatScreen({this.ownUser, this.user});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -94,9 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
   var textCont = TextEditingController();
   var scroller = ScrollController();
 
-  Widget _buildMessage(
-      constants.Message lastMessage, constants.Message message, bool isMe) {
-    bool sameAsLast = lastMessage?.sender == message.sender;
+  Widget _buildMessage(_core.Tag lastMessage, _core.Tag message, bool isMe) {
+    bool sameAsLast = lastMessage['sender'] == message['sender'];
     double offset = MediaQuery.of(context).size.width * .15;
 
     double top = 10;
@@ -137,14 +135,14 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             if (!isMe && (widget.user.type == 2) && !sameAsLast)
               Text(
-                message.sender.name,
+                message['sender'],
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             if (!isMe && widget.user.type == 2)
               SizedBox(
                 height: 4,
               ),
-            if (message.type == 'image')
+            if (message['chat'] == _core.CHAT['image'])
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: ClipRRect(
@@ -158,10 +156,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       fit: BoxFit.scaleDown),
                 ),
               ),
-            if (message.type == 'audio') AudioChat(message, isMe),
-            if (message.type == 'audio') SizedBox(height: 2),
+            if (message['chat'] == _core.CHAT['audio'])
+              AudioChat(message, isMe),
+            if (message['chat'] == _core.CHAT['audio']) SizedBox(height: 2),
             Text(
-              message.text,
+              message['text'],
               style: TextStyle(
                   fontFamily: 'Times New Roman',
                   fontSize: 12,
@@ -179,7 +178,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 2.0),
                         child: Text(
-                          message.time,
+                          message.get_date_time(),
                           textAlign: TextAlign.end,
                           style: TextStyle(
                             fontSize: 9,
@@ -193,7 +192,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       if (isMe)
                         Icon(
-                          message.sent
+                          message['sent']
                               ? Icons.check_circle_outline
                               : Icons.history,
                           size: 10,
@@ -229,7 +228,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           onPressed: () => showDialog(
                               context: context,
                               builder: (context) =>
-                                  ProfileDialog(widget.user, widget.client)),
+                                  ProfileDialog(widget.user, widget.ownUser)),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                           child:
@@ -244,7 +243,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return msg;
   }
 
-  Widget _buildChannel(constants.Message message) {
+  Widget _buildChannel(_core.Tag message) {
     ThemeData themeData = Theme.of(context);
 
     var messageWidget = Column(
@@ -266,7 +265,7 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (message.type == 'image')
+              if (message['CHAT'] == _core.CHAT['image'])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: ClipRRect(
@@ -275,10 +274,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         fit: BoxFit.scaleDown),
                   ),
                 ),
-              if (message.type == 'audio') AudioChat(message, false),
-              if (message.type == 'audio') SizedBox(height: 2),
+              if (message['CHAT'] == _core.CHAT['audio'])
+                AudioChat(message, false),
+              if (message['CHAT'] == _core.CHAT['audio']) SizedBox(height: 2),
               Text(
-                message.text,
+                message['text'],
                 style: TextStyle(
                     fontFamily: 'Times New Roman',
                     fontSize: 12,
@@ -296,7 +296,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 2.0),
                           child: Text(
-                            message.time,
+                            message.get_date_time(),
                             textAlign: TextAlign.end,
                             style: TextStyle(
                               fontSize: 9,
@@ -326,13 +326,13 @@ class _ChatScreenState extends State<ChatScreen> {
         String istext = text.replaceAll(' ', '');
 
         if (istext.isNotEmpty) {
-          constants.Message message = constants.Message(
-            text: text,
-            sender: widget.client,
-            time: '5:18 AM',
-            sent: false,
-          );
-          widget.user.msgs.add(message);
+          _core.Tag message = _core.Tag({
+            'text': text,
+            'sender': widget.ownUser,
+            'time': '5:18 AM',
+            'sent': false,
+          });
+          widget.user.chats.add(message);
         }
         inText = false;
         textCont.text = '';
@@ -448,7 +448,7 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: () {
             showDialog(
               context: context,
-              builder: (context) => ProfileDialog(widget.user, widget.client),
+              builder: (context) => ProfileDialog(widget.user, widget.ownUser),
             );
           },
           child: Row(children: [
@@ -524,15 +524,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: ListView.builder(
                       controller: scroller,
                       padding: EdgeInsets.only(bottom: 10),
-                      itemCount: widget.user.msgs.length,
+                      itemCount: widget.user.chats.length,
                       itemBuilder: (BuildContext context, int index) {
-                        constants.Message lastMessage;
+                        _core.Tag lastMessage;
                         if (index > 0) {
-                          lastMessage = widget.user.msgs[index - 1];
+                          lastMessage = widget.user.chats[index - 1];
                         }
-                        final constants.Message message =
-                            widget.user.msgs[index];
-                        final bool isMe = message.sender.id == widget.client.id;
+                        final _core.Tag message = widget.user.chats[index];
+                        final bool isMe =
+                            message['sender'].id == widget.ownUser.id;
                         if (widget.user.type == 3)
                           return _buildChannel(message);
                         return _buildMessage(lastMessage, message, isMe);

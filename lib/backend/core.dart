@@ -355,6 +355,7 @@ class Base with Mixin {
 class p_User_Base extends Base {
   CONSTANT _status = STATUS['OFFLINE'];
   DateTime last_seen;
+  int type = 0;
 
   p_User_Base(String id,
       {String name = '', String icon = '', DateTime date_time})
@@ -439,7 +440,7 @@ class p_User extends p_User_Base {
   p_Manager channels;
 
   p_User(String id,
-      {this.key = '', String name = '', String icon = '', DateTime date_time})
+      {this.key = '', String name = '', String icon = '', DateTime? date_time})
       : super(id, name: name, icon: icon, date_time: date_time);
 
   void add_user(p_User_Base user) {
@@ -491,7 +492,7 @@ class p_Manager {
 
   int get length => objects_.length;
 
-  List<Base> get objects => objects_.values.toList();
+  List<p_User_Base> get objects => objects_.values.toList();
 
   List<String> get ids => objects_.keys.toList();
 

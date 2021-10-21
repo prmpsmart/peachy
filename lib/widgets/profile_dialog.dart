@@ -4,7 +4,8 @@ import '../screens/chat_screen.dart';
 import '../backend/client.dart' as _client;
 import '../backend/core.dart' as _core;
 
-SizedBox iconButton(IconData icon, Function function, BuildContext context) {
+SizedBox iconButton(
+    IconData icon, void Function()? function, BuildContext context) {
   return SizedBox(
     height: 35,
     width: 35,
@@ -55,10 +56,10 @@ class Content_TabViewState extends State<ContentTabView> {
       color: Colors.white,
       child: ListView.builder(
           scrollDirection: Axis.vertical,
-          itemCount: widget.ownUser.users?.length,
+          itemCount: widget.ownUser.users?.length ?? 0,
           itemBuilder: (BuildContext context, int index) {
-            _client.User user = widget.ownUser.users[index];
-            _core.Tag message = user.chats[index + 4];
+            _client.User? user = widget.ownUser.users?[index];
+            _core.Tag? message = user!.chats[index + 4];
 
             String name = user.name;
             String text = message['text'];
@@ -182,7 +183,7 @@ class ProfileDialog extends StatefulWidget {
 
 class _ProfileDialogState extends State<ProfileDialog>
     with SingleTickerProviderStateMixin {
-  TabController _tabController;
+  late TabController _tabController;
 
   @override
   void initState() {
@@ -214,6 +215,7 @@ class _ProfileDialogState extends State<ProfileDialog>
           break;
         }
       case 3:
+      default:
         {
           type = 'Channel';
           break;

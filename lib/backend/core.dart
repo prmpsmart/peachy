@@ -4,21 +4,21 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 
 dynamic DATETIME({dynamic date_time, bool num = true}) {
-  dynamic datetime;
+  dynamic date_time;
   if (date_time == null) {
-    datetime = DateTime.now();
+    date_time = DateTime.now();
     if (num == true) {
-      return DATETIME(date_time: datetime);
+      return DATETIME(date_time: date_time);
     } else {
-      return datetime;
+      return date_time;
     }
   } else {
-    datetime = date_time;
+    date_time = date_time;
   }
-  if ((datetime is int) && (datetime > 0)) {
-    return DateTime.fromMicrosecondsSinceEpoch(datetime);
-  } else if (datetime is DateTime) {
-    return datetime.microsecondsSinceEpoch;
+  if ((date_time is int) && (date_time > 0)) {
+    return DateTime.fromMicrosecondsSinceEpoch(date_time);
+  } else if (date_time is DateTime) {
+    return date_time.microsecondsSinceEpoch;
   }
 }
 
@@ -28,6 +28,10 @@ String OFFLINE_FORMAT(dynamic date_time) {
   }
   return 'OFFLINE | ' + DateFormat('dd/MM/yy | HH:mm:ss').format(date_time);
 }
+
+String DATE(DateTime date_time) => DateFormat('dd/MM/yy').format(date_time);
+
+String TIME(DateTime date_time) => DateFormat('HH:mm:ss').format(date_time);
 
 String EXISTS(dynamic manager, dynamic obj) {
   if (manager.objects.containsKey(obj.toString())) {
@@ -51,7 +55,7 @@ class CONSTANT with Mixin {
   String _NAME = '';
   Map<String, CONSTANT> OBJECTS = {};
 
-  CONSTANT(String name, {List<dynamic> objects}) {
+  CONSTANT(String name, {List<dynamic>? objects}) {
     _NAME = name.toUpperCase();
 
     objects?.forEach((obj) {
@@ -95,7 +99,7 @@ class CONSTANT with Mixin {
       });
       return list;
     }
-    return null;
+    return;
   }
 
   @override
@@ -324,14 +328,14 @@ class Tag with Mixin {
 }
 
 class Base with Mixin {
-  String id = '';
-  String name = '';
+  String id;
+  String name;
   String ext = '';
   String icon = '';
-  DateTime date_time;
+  DateTime? date_time;
   List<Tag> chats = [];
 
-  Base(this.id, {this.name, this.icon = '', DateTime date_time}) {
+  Base(this.id, {this.name = '', this.icon = '', DateTime? date_time}) {
     if (date_time != null) {
       this.date_time = date_time;
     } else {
@@ -354,12 +358,14 @@ class Base with Mixin {
 // 'p' comes before this type of classes so that they can be imported. They will not be if preceeded by '_'
 class p_User_Base extends Base {
   CONSTANT _status = STATUS['OFFLINE'];
-  DateTime last_seen;
+  DateTime? last_seen;
   int type = 0;
 
   p_User_Base(String id,
-      {String name = '', String icon = '', DateTime date_time})
-      : super(id, name: name, icon: icon, date_time: date_time);
+      {String name = '', String icon = '', DateTime? date_time})
+      : super(id, name: name, icon: icon, date_time: date_time) {
+    last_seen = DateTime.now();
+  }
 
   String get status => _status.toString();
 
@@ -373,12 +379,11 @@ class p_User_Base extends Base {
 
   int get int_last_seen => DATETIME(date_time: last_seen);
 
-  String get str_last_seen {
+  String? get str_last_seen {
     // prmp
     if (last_seen != null) {
       return OFFLINE_FORMAT(last_seen);
     }
-    return null;
   }
 
   void change_status(dynamic status) {
@@ -397,17 +402,19 @@ class p_User_Base extends Base {
   }
 }
 
-class p_Multi_Users extends Base {
+class p_MultiUsers extends Base {
   bool only_admin = false;
   //prmp
   dynamic creator; // p_User
   Map<String, dynamic> admins_ = {}; // p_User
   Map<String, dynamic> users_ = {}; //p_User
-  DateTime last_time;
+  DateTime? last_time;
 
-  p_Multi_Users(String id,
-      {String name = '', String icon = '', DateTime date_time})
-      : super(id, name: name, icon: icon, date_time: date_time);
+  p_MultiUsers(String id,
+      {String name = '', String icon = '', DateTime? date_time})
+      : super(id, name: name, icon: icon, date_time: date_time) {
+    last_time = DateTime.now();
+  }
 
   void add_admin(String admin_id) {
     if (users_.containsKey(admin_id)) {
@@ -435,9 +442,9 @@ class p_Multi_Users extends Base {
 
 class p_User extends p_User_Base {
   String key = '';
-  p_Manager users;
-  p_Manager groups;
-  p_Manager channels;
+  p_Manager? users;
+  p_Manager? groups;
+  p_Manager? channels;
 
   p_User(String id,
       {this.key = '', String name = '', String icon = '', DateTime? date_time})
@@ -447,31 +454,30 @@ class p_User extends p_User_Base {
     users?.add(user);
   }
 
-  void add_group(p_Multi_Users group) {
+  void add_group(p_MultiUsers group) {
     groups?.add(group);
   }
 
-  void add_channel(p_Multi_Users channel) {
+  void add_channel(p_MultiUsers channel) {
     channels?.add(channel);
   }
 }
 
 class p_Manager {
   p_User user;
-  final Map<String, Base> objects_ = {};
+
+  final Map<String, dynamic> objects_ = {};
 
   p_Manager(this.user);
 
-  p_User_Base get(String item) {
-    return objects_[item];
-  }
+  get(String item) => objects_[item];
 
   void add(dynamic obj) {
-    if (obj.id == user?.id) {
+    if (obj.id == user.id) {
       return;
     }
     var _obj = get(obj.id);
-    if (_obj != null) {
+    if (_obj == null) {
       objects_[obj.id] = obj;
     }
   }
@@ -492,7 +498,7 @@ class p_Manager {
 
   int get length => objects_.length;
 
-  List<p_User_Base> get objects => objects_.values.toList();
+  List<dynamic> get objects => objects_.values.toList();
 
   List<String> get ids => objects_.keys.toList();
 
@@ -507,19 +513,19 @@ class p_Manager {
         litu.add(this[element]);
       });
       return litu;
-    }
+    } else if (name is int) return objects[name];
   }
 }
 
 class Sock with Mixin {
-  Socket socket; // or Socket
+  Socket? socket; // or Socket
   CONSTANT state = SOCKET['CLOSED'];
   List<Tag> TAGS = [];
-  Function receiver;
-  Function onDone;
-  Function onError;
+  Function? receiver;
+  Function? onDone;
+  Function? onError;
 
-  Sock({Socket socket, this.receiver, this.onDone, this.onError}) {
+  Sock({Socket? socket, this.receiver, this.onDone, this.onError}) {
     if (socket != null) {
       this.socket = socket;
     }
@@ -532,7 +538,7 @@ class Sock with Mixin {
     try {
       socket = await Socket.connect(ip, port);
       state = SOCKET['ALIVE'];
-      recv_tag(receiver);
+      recv_tag(receiver!);
     } on SocketException {
       state = SOCKET['CLOSED'];
     }
@@ -542,8 +548,8 @@ class Sock with Mixin {
   void close() {
     try {
       state = SOCKET['CLOSED'];
-      socket.close();
-      socket.destroy();
+      socket!.close();
+      socket!.destroy();
       // ignore: empty_catches
     } catch (e) {}
   }
@@ -555,19 +561,24 @@ class Sock with Mixin {
       state = SOCKET['ALIVE'];
       return result;
     } catch (e) {
+      state = SOCKET['CLOSED'];
       return ERRORS;
     }
   }
 
   void recv_tag(Function func) {
-    socket.listen((data) {
+    socket!.listen((data) {
       var tags = Tag.decodes(data);
       func(tags);
-    }, onDone: onDone, onError: onError);
+    }, onDone: () => onDone!(), onError: onError);
   }
 
   bool send_tag(Tag tag) {
-    socket.write(tag.encode);
-    return true;
+    try {
+      socket?.write(tag.encode);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }

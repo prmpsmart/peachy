@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'widgets/toast.dart';
+
 Map<int, Color> color = {
   50: Color.fromRGBO(136, 14, 79, .1),
   100: Color.fromRGBO(136, 14, 79, .2),
@@ -44,29 +46,31 @@ MaterialColor materialColor(String hexcode) {
 }
 
 class CustomButton extends StatelessWidget {
-  final Color accentColor;
-  final Color mainColor;
-  final String text;
-  final Function onpress;
+  final Color? accentColor;
+  final Color? mainColor;
+  final String? text;
+  final Function? onpress;
 
   CustomButton({this.accentColor, this.text, this.mainColor, this.onpress});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onpress,
-      child: Container(
-        decoration: BoxDecoration(
-            border: Border.all(
-              color: accentColor,
-            ),
-            color: mainColor,
-            borderRadius: BorderRadius.circular(50)),
-        width: MediaQuery.of(context).size.width * 0.6,
-        padding: EdgeInsets.all(15),
+    return Container(
+      decoration: BoxDecoration(
+          border: Border.all(
+            color: accentColor!,
+          ),
+          color: mainColor,
+          borderRadius: BorderRadius.circular(20)),
+      width: MediaQuery.of(context).size.width * 0.6,
+      height: 40,
+      child: MaterialButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+        splashColor: accentColor,
+        onPressed: () => onpress!(),
         child: Center(
           child: Text(
-            text.toUpperCase(),
+            text!.toUpperCase(),
             style: TextStyle(fontFamily: 'Poppins', color: accentColor),
           ),
         ),
@@ -75,13 +79,11 @@ class CustomButton extends StatelessWidget {
   }
 }
 
-Container iconNButton(String text, IconData icon, {Function func}) {
+Container iconNButton(String text, IconData icon, {Function? func}) {
   return Container(
     height: 30,
     child: ElevatedButton(
-      onPressed: () {
-        if (func != null) func();
-      },
+      onPressed: () => func!(),
       child: Row(
         children: [
           Icon(icon, size: 18),
@@ -103,15 +105,15 @@ Container iconNButton(String text, IconData icon, {Function func}) {
 }
 
 class CustomTextInput extends StatelessWidget {
-  final String hintText;
-  final IconData leading;
-  final Function userTyped;
-  final bool obscure;
-  final TextInputType keyboard;
+  final String? hintText;
+  final IconData? leading;
+  final bool? obscure;
+  final TextInputType? keyboard;
+  final TextEditingController? controller;
   CustomTextInput(
       {this.hintText,
       this.leading,
-      this.userTyped,
+      this.controller,
       this.obscure,
       this.keyboard = TextInputType.text});
   @override
@@ -125,11 +127,10 @@ class CustomTextInput extends StatelessWidget {
       padding: EdgeInsets.only(left: 10),
       width: MediaQuery.of(context).size.width * 0.70,
       child: TextField(
-        onChanged: userTyped,
+        controller: controller,
         keyboardType: keyboard,
-        onSubmitted: (value) {},
         autofocus: false,
-        obscureText: obscure,
+        obscureText: obscure!,
         decoration: InputDecoration(
           icon: Icon(
             leading,
@@ -179,3 +180,111 @@ Column peachyLogo(BuildContext context, {double size = 120}) {
     ],
   );
 }
+
+MaterialButton outlinedTextButton(String text, Function func, Color color) =>
+    MaterialButton(
+      height: 30,
+      minWidth: 40,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: color,
+        ),
+      ),
+      textTheme: ButtonTextTheme.normal,
+      splashColor: color,
+      onPressed: () => func(),
+      onLongPress: () => print('cliecked'),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+        ),
+      ),
+    );
+
+Future<bool> onWillPop(BuildContext context) async {
+  return (await showDialog(
+          context: context,
+          builder: (context) {
+            Color color1 = Theme.of(context).primaryColor;
+            Color color2 = Theme.of(context).colorScheme.secondary;
+
+            return Dialog(
+              elevation: 5,
+              insetPadding: EdgeInsets.symmetric(horizontal: 100),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(
+                  color: color1,
+                ),
+              ),
+              backgroundColor: color2.withOpacity(.8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Exit Peachy?',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                        color: color1,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      outlinedTextButton(
+                          'No', () => Navigator.of(context).pop(false), color1),
+                      SizedBox(width: 20),
+                      outlinedTextButton(
+                          'Yes', () => Navigator.of(context).pop(true), color1),
+                    ],
+                  )
+                ],
+              ),
+            );
+          })) ??
+      false;
+}
+
+peachyToast(BuildContext context, String text, {int duration = 500}) {
+  FToast ftoast = FToast();
+  ftoast.init(context);
+
+  ftoast.showToast(
+    toastDuration: Duration(milliseconds: duration),
+    child: Container(
+      padding: EdgeInsets.all(5),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: Theme.of(context).primaryColor),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.secondary,
+        ),
+      ),
+    ),
+  );
+}
+
+peachyFooter(BuildContext context) => Hero(
+      tag: 'footer',
+      child: Text(
+        '♥ Mimi Pesco (Peach)\n      @PRMPSmart',
+        style: TextStyle(
+          decoration: TextDecoration.none,
+          color: Theme.of(context).primaryColor,
+          fontFamily: 'Poppins',
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          fontStyle: FontStyle.normal,
+        ),
+      ),
+    );

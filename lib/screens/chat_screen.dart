@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../widgets/profile_dialog.dart';
+import '../dialogs/profile_dialog.dart';
 import '../backend/client.dart' as _client;
 import '../backend/core.dart' as _core;
 
@@ -22,7 +22,7 @@ class _AudioChatState extends State<AudioChat> {
     ThemeData themeData = Theme.of(context);
     Slider slider = Slider(
         activeColor: widget.isMe
-            ? Theme.of(context).accentColor
+            ? Theme.of(context).colorScheme.secondary
             : Theme.of(context).primaryColor,
         divisions: 4,
         value: sliderValue,
@@ -79,8 +79,8 @@ class _AudioChatState extends State<AudioChat> {
 }
 
 class ChatScreen extends StatefulWidget {
-  final _client.User ownUser;
-  final _client.User user;
+  final _client.User? ownUser;
+  final _client.User? user;
 
   ChatScreen({this.ownUser, this.user});
 
@@ -114,7 +114,7 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : EdgeInsets.only(
                 top: top,
-                left: widget.user.type == 2 ? 5 : 15,
+                left: widget.user!.type == 2 ? 5 : 15,
                 right: offset,
               ),
         padding: EdgeInsets.all(5),
@@ -133,12 +133,12 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment:
               isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            if (!isMe && (widget.user.type == 2) && !sameAsLast)
+            if (!isMe && (widget.user!.type == 2) && !sameAsLast)
               Text(
                 message['sender'],
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
-            if (!isMe && widget.user.type == 2)
+            if (!isMe && widget.user!.type == 2)
               SizedBox(
                 height: 4,
               ),
@@ -214,7 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ? messageWidget
             : Flexible(
                 child: Row(children: [
-                  if (widget.user.type == 2)
+                  if (widget.user!.type == 2)
                     Container(
                       padding: EdgeInsets.zero,
                       margin: EdgeInsets.only(left: 5, top: 0),
@@ -228,7 +228,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           onPressed: () => showDialog(
                               context: context,
                               builder: (context) =>
-                                  ProfileDialog(widget.user, widget.ownUser)),
+                                  ProfileDialog(widget.user!, widget.ownUser!)),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                           child:
@@ -328,11 +328,11 @@ class _ChatScreenState extends State<ChatScreen> {
         if (istext.isNotEmpty) {
           _core.Tag message = _core.Tag({
             'text': text,
-            'sender': widget.ownUser,
+            'sender': widget.ownUser!,
             'time': '5:18 AM',
             'sent': false,
           });
-          widget.user.chats.add(message);
+          widget.user!.chats.add(message);
         }
         inText = false;
         textCont.text = '';
@@ -448,7 +448,8 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: () {
             showDialog(
               context: context,
-              builder: (context) => ProfileDialog(widget.user, widget.ownUser),
+              builder: (context) =>
+                  ProfileDialog(widget.user!, widget.ownUser!),
             );
           },
           child: Row(children: [
@@ -456,7 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.user.name,
+                  Text(widget.user!.name,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 18,
@@ -514,7 +515,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).accentColor,
+                  color: Theme.of(context).colorScheme.secondary,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ClipRRect(
@@ -524,23 +525,23 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: ListView.builder(
                       controller: scroller,
                       padding: EdgeInsets.only(bottom: 10),
-                      itemCount: widget.user.chats.length,
+                      itemCount: widget.user!.chats.length,
                       itemBuilder: (BuildContext context, int index) {
-                        _core.Tag lastMessage;
+                        _core.Tag? lastMessage;
                         if (index > 0) {
-                          lastMessage = widget.user.chats[index - 1];
+                          lastMessage = widget.user!.chats[index - 1];
                         }
-                        final _core.Tag message = widget.user.chats[index];
+                        final _core.Tag message = widget.user!.chats[index];
                         final bool isMe =
-                            message['sender'].id == widget.ownUser.id;
-                        if (widget.user.type == 3)
+                            message['sender'].id == widget.ownUser!.id;
+                        if (widget.user!.type == 3)
                           return _buildChannel(message);
-                        return _buildMessage(lastMessage, message, isMe);
+                        return _buildMessage(lastMessage!, message, isMe);
                       }),
                 ),
               ),
             ),
-            if (widget.user.type != 3) _buildMessageComposer(),
+            if (widget.user!.type != 3) _buildMessageComposer(),
           ],
         ),
       ),

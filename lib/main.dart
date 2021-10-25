@@ -23,7 +23,7 @@ class _PeachyAppState extends State<PeachyApp> {
 
   _client.Client? client;
 
-  String initialRoute = '/createUser';
+  String initialRoute = '/splash';
 
   @override
   void initState() {
@@ -58,7 +58,7 @@ class _PeachyAppState extends State<PeachyApp> {
           secondaryVariant: secondaryVariant,
         ),
         primarySwatch: materialColor('#d85461'),
-        accentColor: secondary,
+        // accentColor: secondary,
         textTheme: TextTheme(
           bodyText2: TextStyle(fontFamily: 'Times New Roman'),
         ),

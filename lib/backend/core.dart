@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names, camel_case_types
+
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
@@ -104,6 +106,10 @@ class CONSTANT with Mixin {
 
   @override
   bool operator ==(dynamic other) => other.toString().toUpperCase() == _NAME;
+
+  @override
+  int get hashCode => _NAME.hashCode;
+
 }
 
 // CONSTANTS

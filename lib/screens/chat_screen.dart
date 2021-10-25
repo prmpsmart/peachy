@@ -48,7 +48,7 @@ class _AudioChatState extends State<AudioChat> {
               clipBehavior: Clip.antiAlias,
               borderRadius: BorderRadius.circular(17.5),
               color:
-                  widget.isMe ? themeData.accentColor : themeData.primaryColor,
+                  widget.isMe ? themeData.colorScheme.secondary : themeData.primaryColor,
               child: InkResponse(
                 onTap: () {
                   setState(() {
@@ -60,13 +60,13 @@ class _AudioChatState extends State<AudioChat> {
                 },
                 splashColor: widget.isMe
                     ? themeData.primaryColor.withOpacity(.5)
-                    : themeData.accentColor.withOpacity(.5),
+                    : themeData.colorScheme.secondary.withOpacity(.5),
                 child: Icon(
                   pause ? Icons.play_arrow : Icons.pause,
                   size: 20,
                   color: widget.isMe
                       ? themeData.primaryColor
-                      : themeData.accentColor,
+                      : themeData.colorScheme.secondary,
                 ),
               ),
             ),

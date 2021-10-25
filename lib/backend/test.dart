@@ -5,6 +5,7 @@ import 'client.dart';
 Future<void> main(List<String> args) async {
   var user = User('ade1', name: 'Apata', key: 'ade1');
   print(user);
+  // ignore: unused_local_variable
   var con = await Client(
     'localhost',
     7767,

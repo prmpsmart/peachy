@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'core.dart';
 import 'package:path/path.dart' as path;
 
@@ -50,7 +52,6 @@ mixin User_Base {
   String ext = '';
 
   void set_icon(String file) {
-    // TODO receive file path or file data from android
     icon = file;
     ext = path.extension(file);
   }

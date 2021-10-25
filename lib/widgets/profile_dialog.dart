@@ -1,3 +1,7 @@
+// ignore_for_file: camel_case_types
+// ignore_for_file: must_be_immutable
+
+
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../screens/chat_screen.dart';
@@ -15,7 +19,7 @@ SizedBox iconButton(
       color: Theme.of(context).primaryColor,
       child: ElevatedButton(
         onPressed: function,
-        child: Icon(icon, size: 20, color: Theme.of(context).accentColor),
+        child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.secondary),
       ),
     ),
   );
@@ -30,7 +34,7 @@ RawMaterialButton switchIconButton(
     child: Icon(
       icon,
       size: size,
-      color: Theme.of(context).accentColor,
+      color: Theme.of(context).colorScheme.secondary,
     ),
     fillColor: Theme.of(context).primaryColor,
     onPressed: () => function(),
@@ -74,7 +78,7 @@ class Content_TabViewState extends State<ContentTabView> {
                     ));
               },
               child: Container(
-                color: Theme.of(context).accentColor,
+                color: Theme.of(context).colorScheme.secondary,
                 child: Column(
                   children: [
                     // Divider(height: 2.0),
@@ -260,7 +264,7 @@ class _ProfileDialogState extends State<ProfileDialog>
             margin: EdgeInsets.only(top: radius),
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
-              color: Theme.of(context).accentColor,
+              color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(padding),
             ),
             child: Column(
@@ -292,7 +296,7 @@ class _ProfileDialogState extends State<ProfileDialog>
                         style: TextStyle(
                           fontFamily: 'Times New Roman',
                           // backgroundColor: Theme.of(context).primaryColor,
-                          color: Theme.of(context).accentColor,
+                          color: Theme.of(context).colorScheme.secondary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -408,7 +412,7 @@ class _ProfileDialogState extends State<ProfileDialog>
               right: padding,
               child: CircleAvatar(
                 backgroundColor: Colors.transparent,
-                foregroundColor: Theme.of(context).accentColor,
+                foregroundColor: Theme.of(context).colorScheme.secondary,
                 radius: radius,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(radius),
@@ -447,9 +451,9 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
     double padding = 10;
     double radius = 45;
 
-    String name = widget.user?.name ?? '';
-    String id = widget.user?.id ?? '';
-    String key = widget.user?.key ?? '';
+    String name = widget.user.name ;
+    String id = widget.user.id ;
+    String key = widget.user.key ;
 
     nameTC.text = name;
     idTC.text = id;
@@ -495,7 +499,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
             margin: EdgeInsets.only(top: radius),
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
-              color: Theme.of(context).accentColor,
+              color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(padding),
             ),
             child: Column(
@@ -516,7 +520,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                         child: Text(
                           'Username : ',
                           style: TextStyle(
-                            color: Theme.of(context).accentColor,
+                            color: Theme.of(context).colorScheme.secondary,
                             fontSize: 13,
                             fontFamily: 'Times New Roman',
                             fontWeight: FontWeight.bold,
@@ -531,7 +535,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                             setState(() {
                               if (nameBool) {
                                 nameBool = false;
-                                widget.user?.name = nameTC.text;
+                                widget.user.name = nameTC.text;
                               } else
                                 nameBool = true;
                             });
@@ -558,7 +562,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                           style: TextStyle(
                             fontFamily: 'Times New Roman',
                             // backgroundColor: Theme.of(context).primaryColor,
-                            color: Theme.of(context).accentColor,
+                            color: Theme.of(context).colorScheme.secondary,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
@@ -599,7 +603,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                           style: TextStyle(
                             fontFamily: 'Times New Roman',
                             // backgroundColor: Theme.of(context).primaryColor,
-                            color: Theme.of(context).accentColor,
+                            color: Theme.of(context).colorScheme.secondary,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
@@ -641,7 +645,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
               right: padding,
               child: CircleAvatar(
                 backgroundColor: Colors.transparent,
-                foregroundColor: Theme.of(context).accentColor,
+                foregroundColor: Theme.of(context).colorScheme.secondary,
                 radius: radius,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(radius),

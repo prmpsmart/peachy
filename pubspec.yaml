@@ -32,6 +32,9 @@ dependencies:
   sqflite: ^2.0.0+4
   path_provider: ^2.0.2
 
+  flutter_emoji:
+  permission_handler:
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

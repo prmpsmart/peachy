@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 
 dynamic DATETIME({dynamic date_time, bool num = true}) {
-  dynamic date_time;
   if (date_time == null) {
     date_time = DateTime.now();
     if (num == true) {
@@ -17,10 +16,11 @@ dynamic DATETIME({dynamic date_time, bool num = true}) {
   } else {
     date_time = date_time;
   }
+
   if ((date_time is int) && (date_time > 0)) {
-    return DateTime.fromMicrosecondsSinceEpoch(date_time);
+    return DateTime.fromMillisecondsSinceEpoch(date_time*1000);
   } else if (date_time is DateTime) {
-    return date_time.microsecondsSinceEpoch;
+    return date_time.millisecondsSinceEpoch~/1000;
   }
 }
 
@@ -28,10 +28,10 @@ String OFFLINE_FORMAT(dynamic date_time) {
   if (date_time is int) {
     date_time = DATETIME(date_time: date_time);
   }
-  return 'OFFLINE | ' + DateFormat('dd/MM/yy | HH:mm:ss').format(date_time);
+  return 'OFFLINE | ' + DateFormat('dd/MM/yyyy | HH:mm:ss').format(date_time);
 }
 
-String DATE(DateTime date_time) => DateFormat('dd/MM/yy').format(date_time);
+String DATE(DateTime date_time) => DateFormat('dd/MM/yyyy').format(date_time);
 
 String TIME(DateTime date_time) => DateFormat('HH:mm:ss').format(date_time);
 
@@ -109,7 +109,6 @@ class CONSTANT with Mixin {
 
   @override
   int get hashCode => _NAME.hashCode;
-
 }
 
 // CONSTANTS

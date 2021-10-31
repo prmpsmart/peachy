@@ -147,7 +147,7 @@ class User extends p_User with User_Base {
   ContactsManager get contacts => users as ContactsManager;
 
   void load_data(Tag tag) {
-    // print('load_data: $tag');
+    // print('load_data: ${tag.encode.split("c_ade4").last}');
 
     name = tag['name'] ?? '';
     icon = tag['icon'] ?? '';

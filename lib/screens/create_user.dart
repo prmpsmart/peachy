@@ -1,57 +1,29 @@
-import 'dart:async';
+// ignore_for_file: must_be_immutable
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import '../backend/connection.dart';
-import '../backend/client.dart';
-import '../dialogs/server_dialog.dart';
+import 'package:peachy/backend/client.dart';
+import 'package:peachy/dialogs/server_dialog.dart';
+import '../networking/connection.dart';
 import '../constants.dart';
 
-class CreateUser extends StatefulWidget {
-  final bool isProfile;
-
-  CreateUser(this.isProfile);
+class CreateUser extends ConnectionWidget {
+  CreateUser(bool showPop, Client? client) : super(showPop, client);
 
   @override
   _CreateUserState createState() => _CreateUserState();
 }
 
-class _CreateUserState extends State<CreateUser>
+class _CreateUserState extends ConnectionWidgetState<CreateUser>
     with SingleTickerProviderStateMixin {
   late AnimationController mainController;
   late Animation mainAnimation;
-  Client? client;
-
-  bool sentConnect = false;
-
-  bool get alive => client?.alive ?? false;
-
-  statusWatcher(bool value) {
-    print('create_user._CreateUserState.statusWatcher: $value');
-    if (!value)
-      connect();
-    else
-      setState(() {});
-  }
-
-  void connect() async {
-    print('here');
-    if (ServerSettings.loaded) {
-      if (client == null)
-        client = Client(ServerSettings.ip as String, ServerSettings.port as int,
-            statusWatcher: statusWatcher);
-
-      CONNECT(client as Client, () => setState(() {}), context,
-          () => this.sentConnect, (value) => this.sentConnect = value,
-          showToast: true);
-    }
-  }
 
   @override
   void initState() {
-    super.initState();
     mainController = AnimationController(
-      duration: Duration(milliseconds: 500),
       vsync: this,
+      duration: Duration(milliseconds: 500),
     );
     mainAnimation = ColorTween(
       begin: materialColor('#d85461'),
@@ -62,13 +34,10 @@ class _CreateUserState extends State<CreateUser>
       setState(() {});
     });
 
-    ServerSettings.load();
-    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-      Timer(Duration(seconds: 2), connect);
-    });
+    super.initState();
   }
 
-  bool get isProfile => widget.isProfile;
+  bool get showPop => widget.showPop;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +65,7 @@ class _CreateUserState extends State<CreateUser>
       connectionColor = Colors.red;
     }
 
-    Scaffold scaffold = Scaffold(
+    scaffold = Scaffold(
       backgroundColor: mainAnimation.value,
       body: SafeArea(
         child: Container(
@@ -151,8 +120,6 @@ class _CreateUserState extends State<CreateUser>
       ),
     );
 
-    return isProfile
-        ? scaffold
-        : WillPopScope(onWillPop: () => onWillPop(context), child: scaffold);
+    return super.build(context);
   }
 }

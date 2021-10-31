@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/create_user.dart';
 import 'screens/login.dart';
-import 'screens/peachy_screen.dart';
+import 'screens/peachy_home.dart';
 import 'backend/client.dart' as _client;
 import 'constants.dart';
 import 'screens/peachy_splash.dart';
 import 'screens/signup.dart';
-
 
 void main() {
   runApp(
@@ -20,11 +19,8 @@ class PeachyApp extends StatefulWidget {
 }
 
 class _PeachyAppState extends State<PeachyApp> {
-  _client.User? user;
-
-  _client.Client? client;
-
   String initialRoute = '/splash';
+  _client.Client? client;
 
   @override
   void initState() {
@@ -59,14 +55,13 @@ class _PeachyAppState extends State<PeachyApp> {
           secondaryVariant: secondaryVariant,
         ),
         primarySwatch: materialColor('#d85461'),
-        // accentColor: secondary,
         textTheme: TextTheme(
           bodyText2: TextStyle(fontFamily: 'Times New Roman'),
         ),
       ),
       initialRoute: initialRoute,
       routes: {
-        '/splash': (context) => PeachySplash(user),
+        '/splash': (context) => PeachySplash(),
         '/home': (context) {
           var list = ModalRoute.of(context)!.settings.arguments as List;
           return PeachyHome(list[0], list[1]);
@@ -84,8 +79,15 @@ class _PeachyAppState extends State<PeachyApp> {
           return PeachySignUp(client);
         },
         '/createUser': (context) {
-          bool? isProfile = ModalRoute.of(context)!.settings.arguments as bool?;
-          return CreateUser(isProfile ?? false);
+          bool showPop = false;
+          var args = ModalRoute.of(context)?.settings.arguments;
+
+          if (args is _client.Client) {
+            client = args;
+            showPop = true;
+          }
+
+          return CreateUser(showPop, client);
         },
       },
     );

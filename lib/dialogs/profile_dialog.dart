@@ -427,8 +427,9 @@ class _ProfileDialogState extends State<ProfileDialog>
 
 class ClientProfileDialog extends StatefulWidget {
   _client.User? user;
+  _client.Client? client;
 
-  ClientProfileDialog(this.user);
+  ClientProfileDialog(this.user, {this.client});
 
   @override
   _ClientProfileDialogState createState() => _ClientProfileDialogState();
@@ -632,7 +633,7 @@ class _ClientProfileDialogState extends State<ClientProfileDialog> {
                     Icons.person,
                     func: () => Navigator.pushReplacementNamed(
                         context, '/createUser',
-                        arguments: true),
+                        arguments: widget.client),
                   ),
                 ),
                 Padding(

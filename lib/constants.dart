@@ -205,61 +205,13 @@ MaterialButton outlinedTextButton(String text, Function func, Color color) =>
       ),
     );
 
-Future<bool> onWillPop(BuildContext context) async {
-  return (await showDialog(
-          context: context,
-          builder: (context) {
-            Color color1 = Theme.of(context).primaryColor;
-            Color color2 = Theme.of(context).colorScheme.secondary;
-
-            return Dialog(
-              elevation: 5,
-              insetPadding: EdgeInsets.symmetric(horizontal: 100),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(
-                  color: color1,
-                ),
-              ),
-              backgroundColor: color2.withOpacity(.8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Exit Peachy?',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins',
-                        color: color1,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      outlinedTextButton(
-                          'No', () => Navigator.of(context).pop(false), color1),
-                      SizedBox(width: 20),
-                      outlinedTextButton(
-                          'Yes', () => Navigator.of(context).pop(true), color1),
-                    ],
-                  )
-                ],
-              ),
-            );
-          })) ??
-      false;
-}
-
-peachyToast(BuildContext context, String text, {int duration = 500}) {
-  FToast ftoast = FToast();
-  ftoast.init(context);
-
-  ftoast.showToast(
+peachyToast(BuildContext context, String text,
+    {int duration = 500, FToast? toast}) {
+  if (toast == null) {
+    FToast toast = FToast();
+    toast.init(context);
+  }
+  toast?.showToast(
     toastDuration: Duration(milliseconds: duration),
     child: Container(
       padding: EdgeInsets.all(5),

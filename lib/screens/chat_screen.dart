@@ -47,8 +47,9 @@ class _AudioChatState extends State<AudioChat> {
             child: Material(
               clipBehavior: Clip.antiAlias,
               borderRadius: BorderRadius.circular(17.5),
-              color:
-                  widget.isMe ? themeData.colorScheme.secondary : themeData.primaryColor,
+              color: widget.isMe
+                  ? themeData.colorScheme.secondary
+                  : themeData.primaryColor,
               child: InkResponse(
                 onTap: () {
                   setState(() {
@@ -80,7 +81,7 @@ class _AudioChatState extends State<AudioChat> {
 
 class ChatScreen extends StatefulWidget {
   final _client.User? ownUser;
-  final _client.User? user;
+  final _core.p_User? user;
 
   ChatScreen({this.ownUser, this.user});
 

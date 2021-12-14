@@ -11,8 +11,6 @@ class PeachyHome extends ConnectionWidget {
 
   PeachyHome(this.user, _client.Client? client) : super(false, client);
 
-  // PeachyHome(this.user, client) : super(false, null);
-
   @override
   _PeachyHomeState createState() => _PeachyHomeState();
 }
@@ -27,6 +25,7 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
 
     tabController = TabController(vsync: this, initialIndex: 0, length: 3);
     tabController.addListener(() => setState(() {}));
+    print(widget.user.channels);
 
     super.initState();
   }

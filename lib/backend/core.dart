@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'package:intl/intl.dart';
+// import 'c';
 
 dynamic DATETIME({dynamic date_time, bool num = true}) {
   if (date_time == null) {
@@ -18,9 +19,9 @@ dynamic DATETIME({dynamic date_time, bool num = true}) {
   }
 
   if ((date_time is int) && (date_time > 0)) {
-    return DateTime.fromMillisecondsSinceEpoch(date_time*1000);
+    return DateTime.fromMillisecondsSinceEpoch(date_time * 1000);
   } else if (date_time is DateTime) {
-    return date_time.millisecondsSinceEpoch~/1000;
+    return date_time.millisecondsSinceEpoch ~/ 1000;
   }
 }
 
@@ -51,6 +52,40 @@ String GETSTRING(List<int> bytes) =>
 
 mixin Mixin {
   String get className => runtimeType.toString();
+}
+
+List<dynamic> ATTRS(dynamic objec, List<String> attrs) {
+  List<dynamic> res = [];
+
+  return res;
+}
+
+String GENERATE_ID(List<dynamic> column) {
+  var id_byt = GETBYTES(column.join("|"));
+  String id = "";
+  return id;
+}
+
+void GENERATE_CHAT_ID(Tag tag) {
+  if (tag['id'] != null) {
+    return;
+  }
+  List<dynamic> raw_id =
+      tag[Tuple(["sender", "recipient", "date_time", "type", "chat"])];
+
+  var dt = raw_id[2];
+
+  if (!(dt is int)) {
+    raw_id[2] = DATETIME(date_time: dt).toString();
+  }
+
+  raw_id.add(DATETIME().toString());
+
+  tag['id'] = GENERATE_ID(raw_id);
+}
+
+void GENERATE_MEMBER_ID(Tag tag, String manager_id, Type manager_type) {
+  tag['unique_id'] = GENERATE_ID([tag['id'], manager_id, manager_type]);
 }
 
 class CONSTANT with Mixin {
@@ -151,23 +186,27 @@ CONSTANT ACTION = CONSTANT('ACTION', objects: [
 ]);
 CONSTANT TAG = CONSTANT('TAG', objects: [
   ACTION,
-  'CHAT_COLOR',
+  "CHAT_COLOR",
   CHAT,
   RESPONSE,
-  'SENDER',
-  'RECIPIENT',
-  'SENDER_TYPE',
+  "SENDER",
+  "RECIPIENT",
+  "SENDER_TYPE",
   ID,
-  'KEY',
-  'NAME',
-  'DATA',
+  "ADMIN",
+  "DESCRIPTION",
+  "ICON",
+  "KEY",
+  "CREATOR",
+  "NAME",
+  "DATA",
   STATUS,
-  'DATE_TIME',
-  'LAST_SEEN',
-  'RESPONSE_TO',
-  'EXT',
+  "DATE_TIME",
+  "LAST_SEEN",
+  "RESPONSE_TO",
+  "EXT",
   TYPE,
-  'TEXT'
+  "TEXT",
 ]);
 
 // CONSTANTS
@@ -198,23 +237,43 @@ class Tuple<Tup> extends ListBase<Tup> {
   void forEach(void Function(Tup) action) {
     _list.forEach(action);
   }
+
+  @override
+  String toString() {
+    String text = _list.join(', ');
+    return '($text)';
+  }
 }
 
 class Tag with Mixin {
   static final String _DELIMITER = '<TAG>';
   static List<int> DELIMITER = GETBYTES(_DELIMITER);
-  Map<dynamic, dynamic> OBJECTS = {};
+  Map OBJECTS = {};
 
-  Tag(Map<dynamic, dynamic> kwargs) {
-    kwargs.forEach((key, value) {
-      if (key is String) {
-        key = key.toUpperCase();
+  Tag(Map kwargs) {
+    kwargs.forEach((k, v) {
+      dynamic kk = k, vv = v;
+      if (TAG.list.contains(k)) {
+        kk = TAG[k];
+        if (kk.list.contains(v)) vv = kk[v];
+      } else if (k == TAG['ID'])
+        vv = v.toString().toLowerCase();
+      else if (k == TAG['DATE_TIME'])
+        vv = DateTime(v);
+      else if (v is Map)
+        vv = Tag(v);
+      else if (v is List) {
+        var vals = [];
+        v.forEach((v_) {
+          dynamic val = v_;
+          if (v is Map) val = Tag(v_);
+          vals.add(val);
+        });
+        vv = Tuple(vals);
       }
-      if (value is Base) {
-        OBJECTS[key] = value.id;
-      } else {
-        OBJECTS[key] = value;
-      }
+
+      OBJECTS[kk] = vv;
+      if (vv is Base) OBJECTS[kk] = vv.id;
     });
   }
   @override
@@ -237,6 +296,14 @@ class Tag with Mixin {
         v = value;
       } else if (value is Base) {
         v = value.id;
+      } else if (value is Tuple) {
+        var vals = [];
+        v.forEach((v_) {
+          dynamic val = v_;
+          if (v is Tag) val = v_.dict;
+          vals.add(val);
+        });
+        v = Tuple(vals);
       } else {
         v = value;
       }
@@ -250,6 +317,13 @@ class Tag with Mixin {
     // var encoded = GETBYTES(string) + DELIMITER;
     return string;
   }
+
+  static Tag decode_dict(Map dict) {
+    return Tag(dict);
+  }
+
+  void forEach(void Function(dynamic, dynamic) action) =>
+      OBJECTS.forEach(action);
 
   static Tag decode(List<int> data) {
     var _decoded = GETSTRING(data);
@@ -298,9 +372,16 @@ class Tag with Mixin {
       });
       return list;
     } else if (attr is String) {
-      if (OBJECTS.containsKey(attr.toUpperCase())) {
-        return OBJECTS[attr.toUpperCase()];
-      }
+      dynamic value;
+      List keys = OBJECTS.keys.toList();
+
+      for (int i = 0; i < keys.length; i++)
+        if (keys[i].toString().toUpperCase() == attr.toUpperCase()) {
+          value = OBJECTS[keys[i]];
+          break;
+        }
+
+      return value;
     }
   }
 
@@ -332,15 +413,23 @@ class Tag with Mixin {
   }
 }
 
+var EMPTY_TAG = Tag({});
+var EMPTY_TAGS = [EMPTY_TAG, []];
+
 class Base with Mixin {
   String id;
   String name;
   String ext = '';
   String icon = '';
+  String description = '';
   DateTime? date_time;
   List<Tag> chats = [];
 
-  Base(this.id, {this.name = '', this.icon = '', DateTime? date_time}) {
+  Base(this.id,
+      {this.name = '',
+      this.icon = '',
+      this.description = '',
+      DateTime? date_time}) {
     if (date_time != null) {
       this.date_time = date_time;
     } else {
@@ -358,6 +447,14 @@ class Base with Mixin {
   }
 
   void add_chat(Tag chat) => chats.add(chat);
+
+  Tag get data => Tag({
+        'name': name,
+        'id': id,
+        'icon': icon,
+        'description': description,
+        'ext': ext
+      });
 }
 
 // 'p' comes before this type of classes so that they can be imported. They will not be if preceeded by '_'
@@ -367,9 +464,10 @@ class p_User_Base extends Base {
   int type = 0;
 
   p_User_Base(String id,
-      {String name = '', String icon = '', DateTime? date_time})
-      : super(id, name: name, icon: icon, date_time: date_time) {
+      {String name = '', String icon = '', DateTime? date_time, description = ''})
+      : super(id, name: name, icon: icon, date_time: date_time, description: description) {
     last_seen = DateTime.now();
+    change_status(STATUS['OFFLINE']);
   }
 
   String get status => _status.toString();
@@ -452,8 +550,8 @@ class p_User extends p_User_Base {
   p_Manager? channels;
 
   p_User(String id,
-      {this.key = '', String name = '', String icon = '', DateTime? date_time})
-      : super(id, name: name, icon: icon, date_time: date_time);
+      {this.key = '', String name = '', String icon = '', DateTime? date_time, String description = ''})
+      : super(id, name: name, icon: icon, date_time: date_time, description : description);
 
   void add_user(p_User_Base user) {
     users?.add(user);

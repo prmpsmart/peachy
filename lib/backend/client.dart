@@ -1,5 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'package:peachy/backend/database.dart';
+
 import 'core.dart';
 import 'package:path/path.dart' as path;
 
@@ -87,18 +89,27 @@ class MultiUsers extends p_MultiUsers with Chats {
   MultiUsers(User user_, Tag tag)
       : super(tag['id'], name: tag['name'], icon: tag['icon'] ?? '') {
     user = user_;
+
+    tag['users'].forEach((tag) => users_[tag['id']] = create_user(tag));
     creator = getUser(tag['creator']);
-    tag['admins'].forEach((id) => admins_[id] = getUser(id));
-    tag['users'].forEach((id) => users_[id] = getUser(id));
+    tag['admins'].forEach((id) => admins_[tag['id']] = getUser(id));
+  }
+
+  p_User create_user(Tag tag) {
+    if (users_.containsKey(id))
+      return users_[id];
+    else {
+      return p_User(id,
+          name: tag['name'],
+          description: tag['description'],
+          icon: tag['icon']);
+    }
   }
 
   getUser(String id) {
     if (user.id == id)
       return user;
-    else if (user.contacts.ids.contains(id))
-      return user.contacts.objects_[id];
-    else
-      return p_User(id);
+    else if (users_.containsKey(id)) return users_[id];
   }
 }
 
@@ -133,6 +144,10 @@ class User extends p_User with User_Base {
   bool recv_data = false;
   bool recv_tags = false;
 
+  static User_DB load_user() => User_DB().load_user();
+
+  User_DB get user_db => User_DB();
+
   User(String id,
       {String name = '',
       String key = '',
@@ -159,16 +174,14 @@ class User extends p_User with User_Base {
     recv_data = true;
   }
 
-  void _load_data(Manager manager, Map datas) {
-    datas.forEach((key, value) {
-      value['id'] = key;
-      var tag = Tag(value);
-      manager.add(tag);
+  void _load_data(Manager manager, datas) {
+    datas.forEach((value) {
+      manager.add(value);
     });
   }
 
   @override
-  void add_chat(Tag chat) {
+  void add_chat(Tag chat, {bool saved: false}) {
     String type = chat['type'];
     if (type == TYPE['CONTACT']) {
       users!.add_chat(chat);
@@ -182,6 +195,7 @@ class User extends p_User with User_Base {
     if ((chat['sender'] == id) && (!chat['sent'])) {
       unsents.add(chat);
     }
+    if (!saved) user_db.add_chat(chat);
   }
 }
 
@@ -501,6 +515,7 @@ class Client {
   }
 
   dynamic send_chat_tag(tag) {
+    GENERATE_CHAT_ID(tag);
     user!.add_chat(tag);
     var res = send_tag(tag);
     tag['sent'] = res is bool;
@@ -522,11 +537,16 @@ class Client {
       var unsents = <Tag>[];
 
       user!.unsents.forEach((chat) async {
+        if (chat['sent']) {
+          user!.user_db.chat_sent(chat);
+          return;
+        }
         var tag = send_chat_tag(chat);
         await Future.delayed(Duration(seconds: 1));
-        if (!tag['sent']) {
+        if (!tag['sent'])
           unsents.add(chat);
-        }
+        else
+          user!.user_db.chat_sent(tag);
       });
 
       user!.unsents = unsents;

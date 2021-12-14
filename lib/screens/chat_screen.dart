@@ -81,7 +81,7 @@ class _AudioChatState extends State<AudioChat> {
 
 class ChatScreen extends StatefulWidget {
   final _client.User? ownUser;
-  final _core.p_User? user;
+  final user;
 
   ChatScreen({this.ownUser, this.user});
 
@@ -94,8 +94,10 @@ class _ChatScreenState extends State<ChatScreen> {
   var textCont = TextEditingController();
   var scroller = ScrollController();
 
-  Widget _buildMessage(_core.Tag lastMessage, _core.Tag message, bool isMe) {
-    bool sameAsLast = lastMessage['sender'] == message['sender'];
+  Widget _buildMessage(_core.Tag? lastMessage, _core.Tag message, bool isMe) {
+    bool sameAsLast = false;
+    if (lastMessage != null)
+      sameAsLast = lastMessage['sender'] == message['sender'];
     double offset = MediaQuery.of(context).size.width * .15;
 
     double top = 10;
@@ -534,10 +536,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         }
                         final _core.Tag message = widget.user!.chats[index];
                         final bool isMe =
-                            message['sender'].id == widget.ownUser!.id;
+                            message['sender'] == widget.ownUser!.id;
                         if (widget.user!.type == 3)
                           return _buildChannel(message);
-                        return _buildMessage(lastMessage!, message, isMe);
+                        return _buildMessage(lastMessage, message, isMe);
                       }),
                 ),
               ),

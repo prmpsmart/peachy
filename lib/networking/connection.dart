@@ -133,11 +133,11 @@ class ConnectionWidgetState<C_W extends ConnectionWidget> extends State<C_W> {
         if (!sentConnect) {
           if (!alive) {
             sentConnect = true;
-            print('sentConnect');
+            // print('sentConnect');
 
             client?.connect().then(
               (value) {
-                print('sentConnect done');
+                // print('sentConnect done');
                 sentConnect = false;
 
                 setState(() {});

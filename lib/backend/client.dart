@@ -1,248 +1,202 @@
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, camel_case_types
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'package:peachy/backend/database.dart';
+import 'multi_users.dart';
+import 'constants.dart';
+import 'tag.dart';
+import 'user.dart';
+import 'utils.dart';
 
-import 'core.dart';
-import 'package:path/path.dart' as path;
+class ServerSettings {
+  static String ip = '';
+  static int port = 0;
+  static bool loaded = false;
 
-class Manager extends p_Manager {
-  Function(User, Tag)? OBJ;
+  static Future<File?> getPath() async {
+    var filesDir = await getExternalStorageDirectory();
+    File file;
 
-  Manager(User user) : super(user);
+    if (filesDir != null) {
+      file = File(filesDir.path + '/server.txt');
+      file.create();
+      return file;
+    }
+  }
 
-  @override
-  void add(dynamic tag) {
-    if (tag['id'] != user.id) {
-      if (OBJ != null) {
-        var obj = OBJ!(user as User, tag);
-        super.add(obj);
+  static get details => 'ServerSettings(ip=$ip, port=$port, loaded=$loaded)';
+
+  static load() async {
+    if (loaded) return;
+
+    File? file = await getPath();
+    if (file != null) {
+      file.openRead();
+      file.readAsString().then((read) {
+        if (read.isNotEmpty && read.contains(';')) {
+          List<String> reads = read.split(';');
+          ip = reads[0];
+          port = int.parse(reads[1]);
+        }
+      });
+      loaded = true;
+    }
+  }
+
+  static save() async {
+    File? file = await getPath();
+    if (file != null) {
+      file.openWrite();
+      file.writeAsString('$ip;$port');
+    }
+  }
+}
+
+typedef TAG_RECEIVER = Function(Tag);
+
+class Sock with Mixin {
+  Socket? socket;
+  CONSTANT state = SOCKET['CLOSED'];
+  TAG_RECEIVER parse;
+  Function()? onClose;
+  Function? onError;
+  Function? onConnect;
+  bool connecting = false;
+
+  String data = '';
+
+  Sock(this.parse, {this.onConnect, this.onClose, this.onError});
+
+  bool get alive => SOCKET['ALIVE'] == state;
+
+  // ignore: unused_element
+  Future<bool> connect() async {
+    ServerSettings.load();
+    if (connecting || alive) return alive;
+    connecting = true;
+    try {
+      socket = await Socket.connect(ServerSettings.ip, ServerSettings.port);
+      state = SOCKET['ALIVE'];
+      onConnect!();
+      socket!.listen(listen, onError: _onError, onDone: onDone);
+    }
+    // on SocketException {}
+    catch (e) {
+      print(e);
+      state = SOCKET['RESET'];
+    }
+    connecting = false;
+    return alive;
+  }
+
+  void onDone() {
+    state = SOCKET['CLOSED'];
+    if (onClose != null) onClose!();
+  }
+
+  void _onError(e) {
+    state = SOCKET['RESET'];
+    if (onError != null) onError!(e);
+  }
+
+  void listen(List<int> buffer) {
+    data += GETSTRING(buffer);
+    List<String> ready_data = [];
+
+    if (data.contains(Tag.STR_DELIMITER)) {
+      List<String> datas = data.split(Tag.STR_DELIMITER);
+      if (data.endsWith(Tag.STR_DELIMITER)) {
+        data = '';
+        ready_data = datas;
+      } else {
+        data = datas.last;
+        ready_data = datas.getRange(0, datas.length - 1).toList();
       }
-    }
-  }
-}
 
-mixin Chats {
-  late User user;
-  List<Tag> chats = [];
-  int unread_chats = 0;
-  DateTime? last_time = DateTime.now();
-
-  // Chats(this.user);
-
-  void add_chat(Tag tag) {
-    var dt = tag['date_time'];
-    last_time = dt ?? DateTime.now();
-    if (tag['sender'] != user.id) {
-      unread_chats += 1;
-    }
-    chats.add(tag);
-  }
-
-  Tag? get last_chat {
-    if (chats.isNotEmpty) {
-      return chats.last;
+      ready_data.forEach((rdata) {
+        if (rdata.isNotEmpty) {
+          Tag tag = Tag.decode_string(rdata);
+          parse(tag);
+        }
+      });
     }
   }
 
-  void read() {
-    unread_chats = 0;
-  }
-}
-
-mixin User_Base {
-  String icon = '';
-  String ext = '';
-
-  void set_icon(String file) {
-    icon = file;
-    ext = path.extension(file);
-  }
-}
-
-class Contact extends p_User_Base with Chats, User_Base {
-  int type = 1;
-  Contact(User user, Tag tag)
-      : super(tag['id'], name: tag['name'], icon: tag['icon'] ?? '') {
-    this.user = user;
-  }
-}
-
-class ContactsManager extends Manager {
-  ContactsManager(User user) : super(user) {
-    OBJ = (User user, Tag tag) => Contact(user, tag);
+  void close() {
+    try {
+      state = SOCKET['CLOSED'];
+      socket!.close();
+      socket!.destroy();
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
-  @override
-  void add_chat(Tag chat) {
-    String id = chat['sender'];
-    if (id == user.id) {
-      id = chat['recipient'];
-      var obj = get(id);
-      if (obj != null) {
-        obj.add_chat(chat);
-      }
+  bool send_tag(Tag tag) {
+    try {
+      socket?.write(tag.encode);
+      return true;
+    } catch (e) {
+      return false;
     }
-  }
-}
-
-class MultiUsers extends p_MultiUsers with Chats {
-  MultiUsers(User user_, Tag tag)
-      : super(tag['id'], name: tag['name'], icon: tag['icon'] ?? '') {
-    user = user_;
-
-    tag['users'].forEach((tag) => users_[tag['id']] = create_user(tag));
-    creator = getUser(tag['creator']);
-    tag['admins'].forEach((id) => admins_[tag['id']] = getUser(id));
-  }
-
-  p_User create_user(Tag tag) {
-    if (users_.containsKey(id))
-      return users_[id];
-    else {
-      return p_User(id,
-          name: tag['name'],
-          description: tag['description'],
-          icon: tag['icon']);
-    }
-  }
-
-  getUser(String id) {
-    if (user.id == id)
-      return user;
-    else if (users_.containsKey(id)) return users_[id];
-  }
-}
-
-class Group extends MultiUsers {
-  int type = 2;
-  Group(User user, Tag tag) : super(user, tag) {
-    only_admin = tag['only_admin'];
-  }
-}
-
-class GroupsManager extends Manager {
-  GroupsManager(User user) : super(user) {
-    OBJ = (User user, Tag tag) => Group(user, tag);
-  }
-}
-
-class Channel extends MultiUsers {
-  int type = 3;
-  Channel(User user, Tag tag) : super(user, tag) {
-    only_admin = true;
-  }
-}
-
-class ChannelsManager extends Manager {
-  ChannelsManager(User user) : super(user) {
-    OBJ = (User user, Tag tag) => Channel(user, tag);
-  }
-}
-
-class User extends p_User with User_Base {
-  List<Tag> unsents = [];
-  bool recv_data = false;
-  bool recv_tags = false;
-
-  static User_DB load_user() => User_DB().load_user();
-
-  User_DB get user_db => User_DB();
-
-  User(String id,
-      {String name = '',
-      String key = '',
-      String icon = '',
-      DateTime? date_time})
-      : super(id, name: name, icon: icon, date_time: date_time, key: key) {
-    users = ContactsManager(this);
-    groups = GroupsManager(this);
-    channels = ChannelsManager(this);
-  }
-
-  ContactsManager get contacts => users as ContactsManager;
-
-  void load_data(Tag tag) {
-    // print('load_data: ${tag.encode.split("c_ade4").last}');
-
-    name = tag['name'] ?? '';
-    icon = tag['icon'] ?? '';
-    ext = tag['ext'] ?? '';
-
-    _load_data(users as Manager, tag['users']);
-    _load_data(groups as Manager, tag['groups']);
-    _load_data(channels as Manager, tag['channels']);
-    recv_data = true;
-  }
-
-  void _load_data(Manager manager, datas) {
-    datas.forEach((value) {
-      manager.add(value);
-    });
-  }
-
-  @override
-  void add_chat(Tag chat, {bool saved: false}) {
-    String type = chat['type'];
-    if (type == TYPE['CONTACT']) {
-      users!.add_chat(chat);
-    } else if (type == TYPE['GROUP']) {
-      groups!.add_chat(chat);
-    } else if (type == TYPE['CHANNEL']) {
-      channels!.add_chat(chat);
-    } else {
-      return;
-    }
-    if ((chat['sender'] == id) && (!chat['sent'])) {
-      unsents.add(chat);
-    }
-    if (!saved) user_db.add_chat(chat);
   }
 }
 
 class Client {
   bool _stop = false; // stop connection or try to relogin
-  String ip;
-  int port;
   User? user;
   late Sock socket;
-  Function(bool)? statusWatcher;
 
   static Client? activeClient;
 
+  Function(bool)? statusWatcher;
+
+  ValueNotifier<Tag> RECV_LOG = ValueNotifier(Tag({}));
+  ValueNotifier<Tag> CHAT_STATUS = ValueNotifier(Tag({}));
+
+  Map<CONSTANT, TAG_RECEIVER> receivers = {};
+
   bool relogin;
 
-  bool start = false; // try to relogin after connection failure
+  String data = '';
+
   @override
   String toString() {
-    return 'Client(ip=$ip port=$port, user=$user)';
+    return 'Client(ip=${ServerSettings.ip} port=${ServerSettings.port}, user=$user)';
   }
 
-  Client(this.ip, this.port,
-      {this.user, this.relogin = false, this.statusWatcher}) {
+  Client({this.user, this.relogin = true, this.statusWatcher}) {
     activeClient = this;
+
+    receivers = {
+      ACTION['ADD']: add_receiver,
+      ACTION['ADD_ADMIN']: add_admin_receiver,
+      ACTION['ADD_MEMBER']: add_member_receiver,
+      ACTION['CHANGE']: change_receiver,
+      ACTION['CHAT']: chat_receiver,
+      ACTION['CREATE']: create_receiver,
+      ACTION['DATA']: data_receiver,
+      ACTION['LOGIN']: login_receiver,
+      ACTION['ONLY_ADMIN']: only_admin_receiver,
+      ACTION['REMOVE_ADMIN']: remove_admin_receiver,
+      ACTION['REMOVE_MEMBER']: remove_member_receiver,
+      ACTION['SIGNUP']: signup_receiver,
+      ACTION['STATUS']: status_receiver,
+    };
+
     create_socket();
   }
 
-  void create_socket() {
-    socket = Sock(receiver: recv_tag, onDone: onDone, onError: onError);
+  bool send_tag(Tag tag) {
+    if (alive) return socket.send_tag(tag);
+    return false;
   }
 
-  bool send_tag(tag) {
-    return socket.send_tag(tag);
-  }
-
-  void recv_tag(List<Tag> tags) {
-    // print('recv_tag: $tags');
-
-    var tag = tags[0];
-    var action = tag['action'];
-    if (ACTION['SIGNUP'] == action) {
-      recv_signup(tag);
-    } else if (ACTION['LOGIN'] == action) {
-      recv_login(tag);
-    } else {
-      parse(tag);
-    }
+  void send_action_tag(Tag tag) {
+    GENERATE_ACTION_ID(tag);
+    bool res = send_tag(tag);
+    if (!res) user!.add_queued(tag);
   }
 
   void set_user(user) {
@@ -250,65 +204,47 @@ class Client {
   }
 
   bool get alive => socket.alive;
+  bool get online => alive && STATUS['ONLINE'] == user?.current_status;
 
-  Future<bool> connect() async {
-    if (alive) return alive;
-
-    var alive_ = await socket.connect(ip, port);
-
-    if (!alive_) {
-      create_socket();
-      alive_ = await socket.connect(ip, port);
-    }
-    return alive_;
+  void create_socket() {
+    socket =
+        Sock(parse, onClose: onClose, onError: onError, onConnect: onConnect);
   }
 
-  void onDone() {
-    print('client.Client.onDone:');
-    shutting();
+  Future<bool> connect() => socket.connect();
+
+  void statusChange() {
+    if (statusWatcher != null) statusWatcher!(alive);
+    // if (relogin && user != null) re_login();
   }
 
-  void onError(e) {
-    print('client.Client.onError: $e');
-    // shutting();
-  }
+  void onConnect() => statusChange();
+
+  void onError(e) {}
+
+  void onClose() => shutting();
 
   void shutting() {
-    socket.state = SOCKET['CLOSED'];
-    statusWatcher!(alive);
-    print('client.Client.shutting:');
-
+    statusChange();
     gone_offline();
-    if (relogin) re_login();
   }
 
-  Function(dynamic)? signup_receiver;
+  Function(CONSTANT)? signup_log;
 
-  Future<CONSTANT> signup(
-      {String id = '',
-      String name = '',
-      String key = '',
-      User? user,
+  Future<CONSTANT> signup(String id, String key,
+      {String name = '',
       bool force = false,
       bool login = false,
-      bool start = false,
-      Function(dynamic)? receiver}) async {
-    signup_receiver = receiver;
+      Function(CONSTANT)? receiver}) async {
+    signup_log = receiver;
 
-    if (!await connect()) {
-      return SOCKET['CLOSED'];
-    }
-
-    this.user ??= user;
-    assert(
-        (id.isNotEmpty && name.isNotEmpty && key.isNotEmpty) || (user != null));
-
-    id = id.isNotEmpty ? id : user!.id;
-    name = name.isNotEmpty ? name : user!.name;
-    key = key.isNotEmpty ? key : user!.key;
+    assert(id.isNotEmpty && key.isNotEmpty);
 
     var tag =
         Tag({'id': id, 'name': name, 'key': key, 'action': ACTION['SIGNUP']});
+
+    if (!await connect()) return RESPONSE['FAILED'];
+    print(tag);
 
     try {
       send_tag(tag);
@@ -318,41 +254,38 @@ class Client {
     return RESPONSE['SUCCESSFUL'];
   }
 
-  void recv_signup(Tag tag) {
-    if (signup_receiver != null) signup_receiver!(tag['response']);
-
+  void signup_receiver(Tag tag) {
     if (RESPONSE['SUCCESSFUL'] == tag['response']) {
-      user ??= User(tag['id'], name: tag['name'], key: tag['key']);
+      user ??= User(
+        tag['id'],
+        tag['key'],
+        name: tag['name'],
+      );
     }
-
-    print('client.Client.recv_signup: ${tag['response']}');
+    if (signup_log != null) signup_log!(tag['response']);
   }
 
-  Function(dynamic)? login_receiver;
+  Function(CONSTANT)? login_log;
 
   Future<CONSTANT> login(
-      {String id = '',
-      String key = '',
-      User? user,
-      bool start = false,
-      Function(dynamic)? receiver}) async {
-    this.start = start;
-    login_receiver = receiver;
-    if (!await connect()) return SOCKET['CLOSED'];
+      {String id = '', String key = '', Function(CONSTANT)? receiver}) async {
+    login_log = receiver;
 
-    this.user ??= user;
-    assert((id.isNotEmpty && key.isNotEmpty) || (user != null));
+    id = id.isNotEmpty ? id : this.user?.id ?? '';
+    key = key.isNotEmpty ? key : this.user?.key ?? '';
 
-    id = id.isNotEmpty ? id : this.user!.id;
-    key = key.isNotEmpty ? key : this.user!.key;
+    if (id.isEmpty && key.isEmpty) return RESPONSE['EXTINCT'];
 
     var tag = Tag({'id': id, 'key': key, 'action': ACTION['LOGIN']});
+
+    if (!await connect()) return RESPONSE['FAILED'];
+
     var response;
 
     try {
-      if (send_tag(tag)) {
+      if (send_tag(tag))
         response = RESPONSE['SUCCESSFUL'];
-      } else
+      else
         response = SOCKET['CLOSED'];
     } catch (e) {
       response = ERRORS;
@@ -361,45 +294,25 @@ class Client {
     return response;
   }
 
-  void recv_login(Tag tag) {
-    print('client.Client.recv_login: $tag');
-    if (login_receiver != null) login_receiver!(tag['response']);
-
+  void login_receiver(Tag tag) {
     if (RESPONSE['SUCCESSFUL'] == tag['response']) {
       _stop = false;
-      user ??= User(tag['id'], key: tag['key']);
+      user = User(tag['id'], tag['key']);
       user!.change_status(STATUS['ONLINE']);
 
-      if (!start) restore_data();
-      send_status();
-      // send_queued();
-      send_queued_tags();
+      if (!user!.recv_data) send_data(user!.id);
     }
+    if (login_log != null) login_log!(tag['response']);
   }
 
-  Future<dynamic> re_login({bool start = false}) async {
-    while (STATUS['OFFLINE'] == user!.status) {
+  Future<dynamic> re_login() async {
+    while (STATUS['OFFLINE'] == user?.status) {
       if (_stop) return;
 
-      var res = await login(start: start);
-      if ((RESPONSE['SUCCESSFUL'] == res) ||
-          (RESPONSE['SIMULTANEOUS_LOGIN'] == res)) {
-        return res;
-      }
+      var res = await login();
+      if (RESPONSE['SUCCESSFUL'] == res) return res;
+
       await Future.delayed(Duration(seconds: 1));
-    }
-  }
-
-  void start_session() {
-    print('client.Client.start_session: Listening to Server');
-
-    while (true) {
-      if (_stop) {
-        return;
-      }
-      if (user!.recv_data && !user!.recv_tags) {
-        recv_queued_tags();
-      }
     }
   }
 
@@ -408,11 +321,13 @@ class Client {
     _stop = true;
     dynamic soc_resp;
 
-    soc_resp = send_tag(Tag({'action': ACTION['LOGOUT']}));
+    var tag = Tag({'action': ACTION['LOGOUT']});
+    soc_resp = send_tag(tag);
     if (soc_resp != null && soc_resp == false) {
       stop();
       soc_resp = RESPONSE['SUCCESSFUL'];
     }
+    print('$tag, $soc_resp, ${DATETIME(num: false)}');
     return soc_resp;
   }
 
@@ -424,75 +339,9 @@ class Client {
 
   void gone_offline() => user?.change_status(STATUS['OFFLINE']);
 
-  void parse(Tag tag) {
-    // print('parse: $tag');
-
-    var action = tag['action'];
-    if (ACTION['STATUS'] == action) {
-      recv_status(tag);
-    } else if (ACTION['CHAT'] == action) {
-      recv_chat(tag);
-    } else if (ACTION['DATA'] == action) {
-      recv_data(tag);
-    } else if (ACTION['ADD'] == action) {
-      recv_add(tag);
-    } else if (ACTION['REMOVE'] == action) {
-      recv_remove(tag);
-    } else if (ACTION['CREATE'] == action) {
-      recv_create(tag);
-    } else if (ACTION['CHANGE'] == action) {
-      recv_change(tag);
-    } else if (ACTION['DELETE'] == action) {
-      recv_delete(tag);
-    }
-  }
-
-  void restore_data() {
-    if (user != null) {
-      return send_data(user!.id);
-    }
-  }
-
   // senders
   dynamic send_data(String id, {dynamic type = 'CONTACT'}) {
     var tag = Tag({'id': id, 'action': ACTION['DATA'], 'type': type});
-    return send_tag(tag);
-  }
-
-  dynamic send_add(String id, dynamic type) {
-    var tag = Tag({'action': ACTION['ADD'], 'type': type, 'id': id});
-    return send_tag(tag);
-  }
-
-  dynamic send_remove(String id, dynamic type) {
-    var tag = Tag({'action': ACTION['REMOVE'], 'type': type, 'id': id});
-    return send_tag(tag);
-  }
-
-  dynamic send_create(String id, dynamic type, String name, String icon) {
-    var tag = Tag({
-      'action': ACTION['CREATE'],
-      'type': type,
-      'id': id,
-      'name': name,
-      'icon': icon
-    });
-    return send_tag(tag);
-  }
-
-  dynamic send_change(String id, String change, dynamic type, String data) {
-    var tag = Tag({
-      'action': ACTION['CHANGE'],
-      'change': change,
-      'type': type,
-      'id': id,
-      'data': data
-    });
-    return send_tag(tag);
-  }
-
-  dynamic send_delete(String id, dynamic type) {
-    var tag = Tag({'action': ACTION['DELETE'], 'type': type, 'id': id});
     return send_tag(tag);
   }
 
@@ -514,98 +363,185 @@ class Client {
     return send_chat_tag(tag);
   }
 
-  dynamic send_chat_tag(tag) {
+  Tag send_chat_tag(Tag tag, {bool resend = false}) {
     GENERATE_CHAT_ID(tag);
-    user!.add_chat(tag);
-    var res = send_tag(tag);
-    tag['sent'] = res is bool;
+    bool res = send_tag(tag);
+    tag['sent'] = res;
+    if (!resend) user!.add_chat(tag);
     return tag;
   }
 
-  dynamic send_start(id, type) {}
-
-  dynamic send_end(id, type) {}
-
-  dynamic send_status() => send_tag(Tag({'action': ACTION['STATUS']}));
-
-  dynamic send_queued() => send_tag(Tag({'action': ACTION['QUEUED']}));
-
   send_queued_tags() async {
-    if (alive && user!.unsents.isNotEmpty) {
-      if (_stop) return;
+    Map<String, Tag> queued = Map.from(this.user!.queued);
 
-      var unsents = <Tag>[];
+    if (queued.isNotEmpty) {
+      queued.forEach((key, chat) {
+        Tag tag = send_chat_tag(chat, resend: true);
+        sleep(Duration(seconds: 1));
 
-      user!.unsents.forEach((chat) async {
-        if (chat['sent']) {
-          user!.user_db.chat_sent(chat);
-          return;
+        bool sent = tag['sent'] ?? false;
+
+        if (sent) {
+          this.user!.queued.remove(key);
+          if (ACTION['CHAT'] == tag['action']) CHAT_STATUS.value = tag;
         }
-        var tag = send_chat_tag(chat);
-        await Future.delayed(Duration(seconds: 1));
-        if (!tag['sent'])
-          unsents.add(chat);
-        else
-          user!.user_db.chat_sent(tag);
       });
-
-      user!.unsents = unsents;
-
-      await Future.delayed(Duration(seconds: 2));
-      // # send_queued_tags();
     }
+    // await Future.delayed(Duration(seconds: 2));
   }
 
   // # receivers
-  dynamic recv_data(Tag tag) {
-    // print('recv_data: $tag');
+  void parse(Tag tag) {
+    var action = tag['action'];
 
-    if (RESPONSE['SUCCESSFUL'] == tag['response']) {
-      print('here');
-      if (tag['id'] == user!.id) {
-        user!.load_data(tag);
+    if (receivers.containsKey(action)) {
+      var receiver = receivers[action] as TAG_RECEIVER;
+      receiver(tag);
+    }
+
+    RECV_LOG.value = tag;
+  }
+
+  String get_type_id(Tag tag) {
+    var add_type = tag['type'];
+    if (TYPE['USER'] == add_type)
+      return tag['user_id'];
+    else if (TYPE['GROUP'] == add_type)
+      return tag['group_id'];
+    else if (TYPE['CHANNEL'] == add_type)
+      return tag['channel_id'];
+    else
+      return '';
+  }
+
+  MultiUsers? get_multi_user(Tag tag) {
+    var type = tag['type'];
+    var manager;
+    if (TYPE['GROUP'] == type)
+      manager = user!.groups;
+    else if (TYPE['CHANNEL'] == type) manager = user!.channels;
+
+    if (manager != null) return manager[get_type_id(tag)];
+  }
+
+  Function(dynamic)? get_add_method(CONSTANT type) {
+    Function(dynamic)? add;
+    if (TYPE['CONTACT'] == type)
+      add = user!.users!.add;
+    else if (TYPE['GROUP'] == type)
+      add = user!.groups!.add;
+    else if (TYPE['CHANNEL'] == type) add = user!.channels!.add;
+    return add;
+  }
+
+  void add_receiver(Tag tag) {
+    var add_type = tag['type'];
+    var data = tag['data'];
+    if ((RESPONSE['SUCCESSFUL'] == tag['response']) && (data != null)) {
+      var add = get_add_method(add_type);
+      if (add != null) tag['obj'] = add(Tag(data));
+    }
+  }
+
+  void add_admin_receiver(Tag tag) {
+    var multi_user = get_multi_user(tag);
+    var user_id = tag['user_id'];
+
+    if ((multi_user != null) && (user_id != null))
+      multi_user.add_admin(user_id);
+  }
+
+  void add_member_receiver(Tag tag) {
+    var multi_user = get_multi_user(tag);
+    var user_id = tag['user_id'];
+
+    if ((multi_user != null) && (user_id != null))
+      multi_user.add_user(user_id);
+    else if (user_id == user!.id) {
+      var data = tag['data'];
+      if (data != null) {
+        var add_type = tag['type'];
+        var add = get_add_method(add_type);
+        if (add != null) tag['obj'] = add(Tag(data));
       }
     }
   }
 
-  dynamic recv_add(Tag tag) {}
+  void change_receiver(Tag tag) {
+    String id = get_type_id(tag);
 
-  dynamic recv_remove(Tag tag) {}
+    if (id == user!.id) if (RESPONSE['SUCCESSFUL'] == tag['response'])
+      user!.implement_change();
+    else if (id.isNotEmpty) {
+      var chat_object = user!.get_chat_object(id);
 
-  dynamic recv_create(Tag tag) {}
-
-  dynamic recv_change(Tag tag) {}
-
-  dynamic recv_delete(Tag tag) {}
-
-  dynamic recv_chat(Tag tag) {
-    user!.add_chat(tag);
-    print('client.Client.recv_chat $tag');
-  }
-
-  dynamic recv_start(Tag tag) {}
-
-  dynamic recv_end(Tag tag) {}
-
-  dynamic recv_status(Tag tag) {
-    if (tag['id'] != null) {
-      var obj = user?.users?.get(tag['id']);
-      if (obj != null) obj.change_status(tag['status']);
-    } else if (tag['statuses'] != null) {
-      var statuses = tag['statuses'];
-      statuses.forEach((element) {
-        String id = element[0];
-        dynamic status = element[1];
-        var user_ = user?.users?.get(id);
-        if (user_ != null) user?.change_status(status);
-      });
+      if (chat_object != null)
+        chat_object.change_data(tag[Tuple(["name", "icon", "bio"])]);
     }
   }
 
-  dynamic recv_queued_tags() {
-    var res = send_tag(Tag({'action': ACTION['QUEUED']}));
-    if (res is int) {
-      user!.recv_tags = true;
+  void chat_receiver(Tag tag) {
+    user!.add_chat(tag);
+  }
+
+  void create_receiver(Tag tag) {
+    var type = tag["type"];
+    var response = tag["response"];
+    if (RESPONSE['SUCCESSFUL'] == response) {
+      var id = tag['id'];
+      if (user!.pending_created_objects.containsKey(id)) {
+        var pending_object = user!.pending_created_objects[id];
+        if (pending_object != null) {
+          var add = get_add_method(type);
+          if (add != null) tag['obj'] = add(pending_object);
+        }
+      }
+    }
+  }
+
+  void data_receiver(Tag tag) {
+    if (RESPONSE['SUCCESSFUL'] == tag['response']) if (tag['id'] == user!.id) {
+      user!.load_data(tag);
+    }
+  }
+
+  void only_admin_receiver(Tag tag) {
+    bool only_admin = false;
+    if (tag['user_id'] == true) only_admin = true;
+    var multi_user = get_multi_user(tag);
+    if (multi_user != null) multi_user.only_admin = only_admin;
+  }
+
+  void remove_admin_receiver(Tag tag) {
+    var multi_user = get_multi_user(tag);
+    var user_id = tag['user_id'];
+
+    if ((multi_user != null) && (user_id != null)) if (multi_user.admins
+        .contains(user_id)) multi_user.admins.remove(user_id);
+  }
+
+  void remove_member_receiver(Tag tag) {
+    var multi_user = get_multi_user(tag);
+    var user_id = tag['user_id'];
+
+    if ((multi_user != null) && (user_id != null)) {
+      if (multi_user.admins.contains(user_id))
+        multi_user.admins.remove(user_id);
+      if (multi_user.users.contains(user_id)) multi_user.users.remove(user_id);
+    }
+  }
+
+  void status_receiver(Tag tag) {
+    var id = tag['id'];
+    if (id != null) {
+      Contact? user = this.user?.users?.get(id);
+      if (user != null) user.change_status(tag['status']);
+    } else if (tag['statuses'] != null) {
+      Tuple statuses = tag['statuses'];
+      statuses.forEach((id_status) {
+        Contact? user = this.user?.users?.get(id_status[0]);
+        if (user != null) user.change_status(id_status[1]);
+      });
     }
   }
 }

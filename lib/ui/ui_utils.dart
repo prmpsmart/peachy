@@ -1,6 +1,9 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:peachy/backend/constants.dart';
+import 'package:peachy/backend/tag.dart';
+import 'package:peachy/backend/user.dart';
 
 import 'widgets/toast.dart';
 
@@ -30,8 +33,8 @@ Color colorHex(String hexcode) {
   return Color(color);
 }
 
-MaterialColor materialColor(String hexcode) {
-  Color color = colorHex(hexcode);
+MaterialColor materialColor(color_value) {
+  Color color = (color_value is String) ? colorHex(color_value) : color_value;
   Map<int, Color> map_color = {
     50: color.withOpacity(.1),
     100: color.withOpacity(.2),
@@ -44,14 +47,14 @@ MaterialColor materialColor(String hexcode) {
     800: color.withOpacity(.9),
     900: color.withOpacity(1),
   };
-  return MaterialColor(hex2int(hexcode), map_color);
+  return MaterialColor(color.value, map_color);
 }
 
 class CustomButton extends StatelessWidget {
   final Color? accentColor;
   final Color? mainColor;
   final String? text;
-  final Function? onpress;
+  final VoidCallback? onpress;
 
   CustomButton({this.accentColor, this.text, this.mainColor, this.onpress});
 
@@ -85,7 +88,9 @@ Container iconNButton(String text, IconData icon, {Function? func}) {
   return Container(
     height: 30,
     child: ElevatedButton(
-      onPressed: () => func!(),
+      onPressed: () {
+        if (func != null) func();
+      },
       child: Row(
         children: [
           Icon(icon, size: 18),
@@ -94,7 +99,6 @@ Container iconNButton(String text, IconData icon, {Function? func}) {
             child: Text(
               text,
               style: TextStyle(
-                fontFamily: 'Times New Roman',
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
               ),
@@ -109,14 +113,18 @@ Container iconNButton(String text, IconData icon, {Function? func}) {
 class CustomTextInput extends StatelessWidget {
   final String? hintText;
   final IconData? leading;
-  final bool? obscure;
+  final bool obscure;
+  final int maxLines;
   final TextInputType? keyboard;
   final TextEditingController? controller;
+  final double radius;
   CustomTextInput(
       {this.hintText,
       this.leading,
       this.controller,
-      this.obscure,
+      this.obscure = false,
+      this.maxLines = 1,
+      this.radius = 30,
       this.keyboard = TextInputType.text});
   @override
   Widget build(BuildContext context) {
@@ -124,7 +132,7 @@ class CustomTextInput extends StatelessWidget {
       margin: EdgeInsets.only(top: 15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(radius),
       ),
       padding: EdgeInsets.only(left: 10),
       width: MediaQuery.of(context).size.width * 0.70,
@@ -132,7 +140,8 @@ class CustomTextInput extends StatelessWidget {
         controller: controller,
         keyboardType: keyboard,
         autofocus: false,
-        obscureText: obscure!,
+        obscureText: obscure,
+        maxLines: maxLines,
         decoration: InputDecoration(
           icon: Icon(
             leading,
@@ -206,12 +215,12 @@ MaterialButton outlinedTextButton(String text, Function func, Color color) =>
     );
 
 peachyToast(BuildContext context, String text,
-    {int duration = 500, FToast? toast}) {
+    {int duration = 500, Toast? toast}) {
   if (toast == null) {
-    FToast toast = FToast();
+    toast = Toast();
     toast.init(context);
   }
-  toast?.showToast(
+  toast.showToast(
     toastDuration: Duration(milliseconds: duration),
     child: Container(
       padding: EdgeInsets.all(5),
@@ -242,3 +251,127 @@ peachyFooter(BuildContext context) => Hero(
         ),
       ),
     );
+
+class P_StatefulWidget extends StatefulWidget {
+  const P_StatefulWidget({Key? key}) : super(key: key);
+
+  @override
+  P_StatefulWidgetState createState() => P_StatefulWidgetState();
+}
+
+class P_StatefulWidgetState<P_S extends P_StatefulWidget> extends State<P_S> {
+  @override
+  void setState(VoidCallback fn) {
+    if (mounted) super.setState(fn);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}
+
+SizedBox iconButton(IconData icon, Function function, BuildContext context) {
+  return SizedBox(
+    height: 35,
+    width: 35,
+    child: Material(
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(17.5),
+      color: Theme.of(context).primaryColor,
+      child: ElevatedButton(
+        onPressed: () => function(),
+        child: Icon(icon,
+            size: 20, color: Theme.of(context).colorScheme.secondary),
+      ),
+    ),
+  );
+}
+
+RawMaterialButton switchIconButton(
+    IconData icon, Function function, BuildContext context,
+    {double wid = 25, double size = 20}) {
+  var btn = RawMaterialButton(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.5)),
+    constraints: BoxConstraints(minWidth: wid, minHeight: wid),
+    child: Icon(
+      icon,
+      size: size,
+      color: Theme.of(context).colorScheme.secondary,
+    ),
+    fillColor: Theme.of(context).primaryColor,
+    onPressed: () => function(),
+  );
+  return btn;
+}
+
+Text getText(String data, {double size = 20}) =>
+    Text(data, style: TextStyle(fontSize: size));
+
+Positioned profileImageWidget(
+        BuildContext context, double padding, double radius) =>
+    Positioned(
+        left: padding,
+        child: CircleAvatar(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Theme.of(context).colorScheme.secondary,
+          radius: radius,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: Image.asset("assets/ic_male_ph.jpg"),
+          ),
+        ));
+
+getTextWidget(BuildContext context, TextEditingController cont, bool b,
+        FontWeight fw, String text,
+        {bool obscureText = false, int maxLines = 1}) =>
+    b
+        ? Expanded(
+            child: TextField(
+              controller: cont,
+              obscureText: obscureText,
+              maxLines: maxLines,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: fw,
+              ),
+            ),
+          )
+        : Text(
+            obscureText ? '*' * text.length : text,
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+              fontSize: 15,
+              fontWeight: fw,
+            ),
+          );
+
+Tag getChangeTag(CONSTANT type, String id, Tag data) {
+  String id_type = '';
+
+  if (TYPE['USER'] == type)
+    id_type = 'user_id';
+  else if (TYPE['GROUP'] == type)
+    id_type = 'group_id';
+  else if (TYPE['CHANNEL'] == type) id_type = 'channel_id';
+
+  return Tag(
+      {'action': ACTION['CHANGE'], id_type: id, 'type': type, 'data': data});
+}
+
+Tag getChangeMultiTag(CONSTANT action, CONSTANT type, String chat_object_id,
+    {String id = '', data}) {
+  // if ((id.isEmpty && (data == null)) || (id == user.id))
+
+  var map = {'action': action, 'user_id': id.isNotEmpty ? id : data};
+
+  if (TYPE['GROUP'] == type) {
+    map['type'] = TYPE['GROUP'];
+    map['group_id'] = chat_object_id;
+  } else if (TYPE['CHANNEL'] == type) {
+    map['type'] = TYPE['GROUP'];
+    map['group_id'] = chat_object_id;
+  }
+
+  return Tag(map);
+}

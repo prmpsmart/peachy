@@ -1,14 +1,16 @@
 // ignore_for_file: must_be_immutable
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:peachy/backend/client.dart';
-import 'package:peachy/dialogs/server_dialog.dart';
-import '../networking/connection.dart';
-import '../constants.dart';
+import '../dialogs/server_dialog.dart';
+import '../connection.dart';
+import '../ui_utils.dart';
 
 class CreateUser extends ConnectionWidget {
-  CreateUser(bool showPop, Client? client) : super(showPop, client);
+  CreateUser(Client? client, bool showPop) : super(client, showPop: showPop);
 
   @override
   _CreateUserState createState() => _CreateUserState();
@@ -18,6 +20,7 @@ class _CreateUserState extends ConnectionWidgetState<CreateUser>
     with SingleTickerProviderStateMixin {
   late AnimationController mainController;
   late Animation mainAnimation;
+  Timer? statusTimer;
 
   @override
   void initState() {
@@ -78,7 +81,6 @@ class _CreateUserState extends ConnectionWidgetState<CreateUser>
                 peachyLogo(context),
                 spacer(.1),
                 TextButton(
-                  // onPressed: () {},
                   onPressed: connect,
                   child: Text(
                     connectionString,
@@ -121,5 +123,12 @@ class _CreateUserState extends ConnectionWidgetState<CreateUser>
     );
 
     return super.build(context);
+  }
+
+  @override
+  void dispose() {
+    statusTimer?.cancel();
+    // widget.client?.stop();
+    super.dispose();
   }
 }

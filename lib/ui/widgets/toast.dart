@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+
+import '../ui_utils.dart';
 // import 'package:flutter/foundation.dart';
 
 /// ToastGravity
@@ -23,26 +25,26 @@ typedef PositionedToastBuilder = Widget Function(
 
 /// Runs on dart side this has no interaction with the Native Side
 /// Works with all platforms just in two lines of code
-/// final fToast = FToast().init(context)
+/// final fToast = Toast().init(context)
 /// fToast.showToast(child)
 ///
-class FToast {
+class Toast {
   BuildContext? context;
 
-  static final FToast _instance = FToast._internal();
+  static final Toast _instance = Toast._internal();
 
-  /// Primary Constructor for FToast
-  factory FToast() {
+  /// Primary Constructor for Toast
+  factory Toast() {
     return _instance;
   }
 
   /// Take users Context and saves to avariable
-  FToast init(BuildContext context) {
+  Toast init(BuildContext context) {
     _instance.context = context;
     return _instance;
   }
 
-  FToast._internal();
+  Toast._internal();
 
   OverlayEntry? _entry;
   List<_ToastEntry> _overlayQueue = [];
@@ -60,7 +62,9 @@ class FToast {
     _entry = _toastEntry.entry;
     if (context == null)
       throw ("Error: Context is null, Please call init(context) before showing toast.");
-    Overlay.of(context!)!.insert(_entry!);
+    try {
+      Overlay.of(context!)!.insert(_entry!);
+    } catch (e) {}
 
     _timer = Timer(_toastEntry.duration!, () {
       Future.delayed(Duration(milliseconds: 360), () {
@@ -79,7 +83,7 @@ class FToast {
     _showOverlay();
   }
 
-  /// FToast maintains a queue for every toast
+  /// Toast maintains a queue for every toast
   /// if we called showToast for 3 times we all to queue
   /// and show them one after another
   ///
@@ -175,8 +179,8 @@ class _ToastEntry {
 }
 
 /// internal [StatefulWidget] which handles the show and hide
-/// animations for [FToast]
-class _ToastStateFul extends StatefulWidget {
+/// animations for [Toast]
+class _ToastStateFul extends P_StatefulWidget {
   _ToastStateFul(this.child, this.duration, {Key? key, this.fadeDuration = 350})
       : super(key: key);
 
@@ -189,7 +193,7 @@ class _ToastStateFul extends StatefulWidget {
 }
 
 /// State for [_ToastStateFul]
-class ToastStateFulState extends State<_ToastStateFul>
+class ToastStateFulState extends P_StatefulWidgetState<_ToastStateFul>
     with SingleTickerProviderStateMixin {
   /// Start the showing animations for the toast
   showIt() {

@@ -3,10 +3,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import '../backend/client.dart';
-import '../constants.dart';
+import 'package:peachy/backend/client.dart';
+import 'package:peachy/backend/constants.dart';
+import '../ui_utils.dart';
 
-class PeachySignUp extends StatefulWidget {
+class PeachySignUp extends P_StatefulWidget {
   Client? client;
   PeachySignUp(this.client);
 
@@ -14,18 +15,14 @@ class PeachySignUp extends StatefulWidget {
   _PeachySignUpState createState() => _PeachySignUpState();
 }
 
-class _PeachySignUpState extends State<PeachySignUp>
+class _PeachySignUpState extends P_StatefulWidgetState<PeachySignUp>
     with SingleTickerProviderStateMixin {
   late AnimationController mainController;
   late Animation mainAnimation;
 
-  String name = '';
-  String username = '';
-  String password = '';
-
-  TextEditingController? nameCont;
-  TextEditingController? userCont;
-  TextEditingController? passCont;
+  late TextEditingController nameCont;
+  late TextEditingController userCont;
+  late TextEditingController passCont;
 
   bool currentStatus = false;
   Timer? statusTimer;
@@ -49,9 +46,9 @@ class _PeachySignUpState extends State<PeachySignUp>
       setState(() {});
     });
 
-    nameCont = TextEditingController(text: name);
-    userCont = TextEditingController(text: username);
-    passCont = TextEditingController(text: password);
+    nameCont = TextEditingController();
+    userCont = TextEditingController();
+    passCont = TextEditingController();
 
     statusTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (client.alive != currentStatus) {
@@ -81,7 +78,7 @@ class _PeachySignUpState extends State<PeachySignUp>
               children: [
                 peachyLogo(context),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => setState(() {}),
                   child: Text(
                     client.alive ? 'Connected' : 'Not Connected',
                     style: TextStyle(
@@ -118,15 +115,30 @@ class _PeachySignUpState extends State<PeachySignUp>
                   tag: 'signupbutton',
                   child: CustomButton(
                     onpress: () {
-                      if (username.isNotEmpty &&
-                          password.isNotEmpty &&
-                          name.isNotEmpty) {
-                        print('signing up');
-                        // var user = User(username, key: password, name: name);
-                        // Navigator.pushReplacementNamed(context, '/home',
-                        //     arguments: user);
+                      if (userCont.text.isNotEmpty &&
+                          passCont.text.isNotEmpty) {
+                        client.signup(
+                          userCont.text,
+                          passCont.text,
+                          name: nameCont.text,
+                          receiver: (response) {
+                            String toast = 'Login failed!';
+                            bool succeed = RESPONSE['SUCCESSFUL'] == response;
+                            if (succeed)
+                              toast = 'Signup Successful!';
+                            else if (RESPONSE['EXIST'] == response)
+                              toast = 'Username already exist!';
+                            peachyToast(context, toast, duration: 2000);
+                            if (succeed) {
+                              Navigator.pop(context);
+                              Navigator.pushReplacementNamed(context, '/login',
+                                  arguments: client);
+                            }
+                          },
+                        );
+                        peachyToast(context, 'Sent Signup!', duration: 1500);
                       } else
-                        peachyToast(context, 'All fields are required!',
+                        peachyToast(context, 'Username and Password required!',
                             duration: 1500);
                     },
                     text: 'signup',

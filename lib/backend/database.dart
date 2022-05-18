@@ -1,12 +1,12 @@
 // ignore_for_file: non_constant_identifier_names
 
-import 'package:peachy/backend/client.dart';
 import 'package:peachy/prmp_sql_dart/bases.dart';
 // import 'package:sqflite/sqflite.dart';
 import '../prmp_sql_dart/statements.dart';
 import '../prmp_sql_dart/datatypes.dart';
 import '../prmp_sql_dart/constraints.dart';
-import 'package:path/path.dart';
+import 'user.dart';
+// import 'package:path/path.dart';
 
 class User_DB {
   static List column_names(List columns) {
@@ -76,7 +76,7 @@ class User_DB {
   }
   void create_db() async {
     // db = await openDatabase(join(await getDatabasesPath(), 'client.db'),
-        // onCreate: create_tables);
+    // onCreate: create_tables);
   }
 
   void create_tables(db, version) {

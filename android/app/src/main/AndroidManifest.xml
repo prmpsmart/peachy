@@ -5,6 +5,7 @@
         android:label="Peachy"
         android:icon="@mipmap/ic_launcher">
         <activity
+            android:exported="true"
             android:theme="@style/LaunchTheme"
             android:name=".MainActivity"
             android:launchMode="singleTop"

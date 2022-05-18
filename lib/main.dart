@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-import 'screens/create_user.dart';
-import 'screens/login.dart';
-import 'screens/peachy_home.dart';
-import 'backend/client.dart' as _client;
-import 'constants.dart';
-import 'screens/peachy_splash.dart';
-import 'screens/signup.dart';
+import 'ui/dialogs/camera.dart';
+import 'ui/screens/create_user.dart';
+import 'ui/screens/login.dart';
+import 'ui/screens/peachy_home.dart';
+import 'backend/client.dart';
+import 'ui/ui_utils.dart';
+import 'ui/screens/peachy_splash.dart';
+import 'ui/screens/signup.'
+    'dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  Camera.staticLoad();
+
   runApp(
     PeachyApp(),
   );
@@ -20,7 +25,7 @@ class PeachyApp extends StatefulWidget {
 
 class _PeachyAppState extends State<PeachyApp> {
   String initialRoute = '/splash';
-  _client.Client? client;
+  Client? client;
 
   @override
   void initState() {
@@ -30,10 +35,10 @@ class _PeachyAppState extends State<PeachyApp> {
   @override
   Widget build(BuildContext context) {
     Color primary = colorHex('#d85461');
+    // primary = Colors.black;
     Color secondary = Color(0xFFFEF9EB);
-
-    Color primaryVariant = primary.withBlue(100);
-    Color secondaryVariant = secondary.withBlue(100);
+    // secondary = Colors.black;
+    MaterialColor primarySwatch = materialColor(primary);
 
     return MaterialApp(
       title: 'Peachy',
@@ -49,32 +54,32 @@ class _PeachyAppState extends State<PeachyApp> {
           secondary: secondary,
           onSecondary: primary,
           brightness: Brightness.light,
-          surface: Colors.pink,
-          onSurface: Colors.pinkAccent,
-          primaryVariant: primaryVariant,
-          secondaryVariant: secondaryVariant,
+          surface: Colors.green,
+          onSurface: Colors.greenAccent,
+          primaryVariant: primary.withBlue(100),
+          secondaryVariant: secondary.withBlue(100),
         ),
-        primarySwatch: materialColor('#d85461'),
+        primarySwatch: primarySwatch,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
         textTheme: TextTheme(
           bodyText2: TextStyle(fontFamily: 'Times New Roman'),
+          button: TextStyle(fontFamily: 'Times New Roman'),
         ),
       ),
       initialRoute: initialRoute,
       routes: {
         '/splash': (context) => PeachySplash(),
         '/home': (context) {
-          var list = ModalRoute.of(context)!.settings.arguments as List;
-          return PeachyHome(list[0], list[1]);
+          var client = ModalRoute.of(context)!.settings.arguments as Client;
+          return PeachyHome(client);
         },
         '/login': (context) {
-          client =
-              ModalRoute.of(context)!.settings.arguments as _client.Client?;
+          client = ModalRoute.of(context)!.settings.arguments as Client?;
 
           return PeachyLogin(client);
         },
         '/signup': (context) {
-          client =
-              ModalRoute.of(context)!.settings.arguments as _client.Client?;
+          client = ModalRoute.of(context)!.settings.arguments as Client?;
 
           return PeachySignUp(client);
         },
@@ -82,12 +87,12 @@ class _PeachyAppState extends State<PeachyApp> {
           bool showPop = false;
           var args = ModalRoute.of(context)?.settings.arguments;
 
-          if (args is _client.Client) {
+          if (args is Client) {
             client = args;
             showPop = true;
           }
 
-          return CreateUser(showPop, client);
+          return CreateUser(client, showPop);
         },
       },
     );

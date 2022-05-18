@@ -1,65 +1,21 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import '../backend/client.dart';
-import '../constants.dart';
+import 'package:peachy/backend/client.dart';
+import '../ui_utils.dart';
 
-class ServerSettings {
-  static String? ip;
-  static int? port;
-  static bool loaded = false;
-
-  static Future<File?> getPath() async {
-    var filesDir = await getExternalStorageDirectory();
-    File file;
-
-    if (filesDir != null) {
-      file = File(filesDir.path + '/server.txt');
-      file.create();
-      return file;
-    }
-  }
-
-  static get details => 'ServerSettings(ip=$ip, port=$port, loaded=$loaded)';
-
-  static load() async {
-    File? file = await getPath();
-    if (file != null) {
-      file.openRead();
-      file.readAsString().then((read) {
-        if (read.isNotEmpty && read.contains(';')) {
-          List<String> reads = read.split(';');
-          ip = reads[0];
-          port = int.parse(reads[1]);
-          loaded = true;
-        }
-      });
-    }
-  }
-
-  static save() async {
-    File? file = await getPath();
-    if (file != null) {
-      file.openWrite();
-      file.writeAsString('$ip;$port');
-    }
-  }
-}
-
-class ServerDialog extends StatefulWidget {
+class ServerDialog extends P_StatefulWidget {
   @override
   _ServerDialogState createState() => _ServerDialogState();
 }
 
-class _ServerDialogState extends State<ServerDialog> {
+class _ServerDialogState extends P_StatefulWidgetState<ServerDialog> {
   TextEditingController? ipCont;
   TextEditingController? portCont;
 
   @override
   void initState() {
-    ipCont = TextEditingController(text: ServerSettings.ip ?? '');
+    ipCont = TextEditingController(text: ServerSettings.ip);
     String port = '';
-    if (ServerSettings.port != null) port = '${ServerSettings.port}';
+    port = '${ServerSettings.port}';
     portCont = TextEditingController(text: port);
     super.initState();
   }
@@ -111,12 +67,6 @@ class _ServerDialogState extends State<ServerDialog> {
                 if (ip.isNotEmpty && port.isNotEmpty) {
                   ServerSettings.ip = ip;
                   ServerSettings.port = int.parse(port);
-
-                  if (Client.activeClient != null) {
-                    Client.activeClient?.ip = ServerSettings.ip as String;
-                    Client.activeClient?.port = ServerSettings.port as int;
-                  }
-
                   ServerSettings.save();
                   Navigator.pop(context);
                 } else

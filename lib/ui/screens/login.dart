@@ -3,11 +3,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import '../backend/core.dart';
-import '../backend/client.dart';
-import '../constants.dart';
+import 'package:peachy/backend/user.dart';
+import 'package:peachy/backend/client.dart';
+import '../ui_utils.dart';
+import 'package:peachy/backend/constants.dart';
 
-class PeachyLogin extends StatefulWidget {
+class PeachyLogin extends P_StatefulWidget {
   Client? client;
   PeachyLogin(this.client);
 
@@ -15,17 +16,14 @@ class PeachyLogin extends StatefulWidget {
   _PeachyLoginState createState() => _PeachyLoginState();
 }
 
-class _PeachyLoginState extends State<PeachyLogin>
+class _PeachyLoginState extends P_StatefulWidgetState<PeachyLogin>
     with SingleTickerProviderStateMixin {
   late AnimationController mainController;
   late Animation mainAnimation;
 
-  String username = 'ade1';
-  String password = 'ade1';
-  TextEditingController? userCont;
-  TextEditingController? passCont;
+  late TextEditingController userCont;
+  late TextEditingController passCont;
 
-  bool currentStatus = false;
   Timer? statusTimer;
 
   Client get client => widget.client as Client;
@@ -46,14 +44,11 @@ class _PeachyLoginState extends State<PeachyLogin>
       setState(() {});
     });
 
-    userCont = TextEditingController(text: username);
-    passCont = TextEditingController(text: password);
+    userCont = TextEditingController(text: client.user?.id);
+    passCont = TextEditingController(text: client.user?.key);
 
     statusTimer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (client.alive != currentStatus) {
-        currentStatus = client.alive;
-        setState(() {});
-      }
+      if (client.alive) setState(() {});
     });
   }
 
@@ -65,8 +60,6 @@ class _PeachyLoginState extends State<PeachyLogin>
 
   @override
   Widget build(BuildContext context) {
-    currentStatus = client.alive;
-
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.secondary,
       body: SingleChildScrollView(
@@ -80,7 +73,7 @@ class _PeachyLoginState extends State<PeachyLogin>
                 peachyLogo(context),
                 SizedBox(height: 10),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => setState(() {}),
                   child: Text(
                     client.alive ? 'Connected' : 'Not Connected',
                     style: TextStyle(
@@ -114,11 +107,11 @@ class _PeachyLoginState extends State<PeachyLogin>
                         return;
                       }
 
-                      if (username.isNotEmpty && password.isNotEmpty) {
-                        User user = User(username, key: password);
-
+                      if (userCont.text.isNotEmpty &&
+                          passCont.text.isNotEmpty) {
                         client.login(
-                          user: user,
+                          id: userCont.text.trim(),
+                          key: passCont.text.trim(),
                           receiver: (response) {
                             String toast = 'Login failed!';
                             bool succeed = RESPONSE['SUCCESSFUL'] == response;
@@ -128,16 +121,18 @@ class _PeachyLoginState extends State<PeachyLogin>
                               toast = 'User doesn\'t exist!';
                             else if (RESPONSE['SIMULTANEOUS_LOGIN'] == response)
                               toast = 'User is already logged in!';
-                            peachyToast(context, toast, duration: 5000);
+                            else if (RESPONSE['FALSE_KEY'] == response)
+                              toast = 'Wrong password!';
+                            peachyToast(context, toast, duration: 2000);
                             if (succeed) {
-                              Navigator.pop(context);
+                              // Navigator.pop(context);
                               Navigator.pushReplacementNamed(context, '/home',
-                                  arguments: [user, client]);
+                                  arguments: client);
                             }
                           },
                         );
                       } else
-                        peachyToast(context, 'All fields are required!',
+                        peachyToast(context, 'Username and Password required!',
                             duration: 1500);
                     },
                   ),

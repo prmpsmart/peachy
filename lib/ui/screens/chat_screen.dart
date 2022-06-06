@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:peachy/backend/client.dart';
 import 'package:peachy/backend/multi_users.dart';
 import 'package:peachy/backend/user.dart';
@@ -236,8 +237,10 @@ class ChatMessage extends P_StatefulWidget {
   late Tag tag;
   Tag? lastTag;
   bool sameAsLast = false;
+  Function screen_setState;
 
-  ChatMessage(this.chatScreen, int index, {key}) : super(key: key) {
+  ChatMessage(this.chatScreen, int index, this.screen_setState, {key})
+      : super(key: key) {
     if (index > 0) lastTag = chat_object.chats[index - 1];
 
     tag = chat_object!.chats[index];
@@ -273,20 +276,20 @@ class ChatMessage extends P_StatefulWidget {
   get chat_object => chatScreen.chat_object;
 
   @override
-  ChatMessageTypeState createState() => ChatMessageTypeState();
+  ChatMessageState createState() => ChatMessageState();
 }
 
-class ChatMessageTypeState extends P_StatefulWidgetState<ChatMessage> {
+class ChatMessageState extends P_StatefulWidgetState<ChatMessage> {
   dynamic get chat_object => widget.chatScreen.chat_object;
 
   @override
   Widget build(BuildContext context) {
-    if (!(widget.tag['seen'] ?? false)) widget.tag['seen'] = true;
+    if (!(widget.tag['seen'] ?? false)) widget.user.chat_seen(widget.tag);
 
     double top = 10;
-    ThemeData themeData = Theme.of(context);
+    var themeData = Theme.of(context);
 
-    double offset = MediaQuery.of(context).size.width * .15;
+    var offset = MediaQuery.of(context).size.width * .15;
 
     EdgeInsets margin;
     Color color;
@@ -333,62 +336,142 @@ class ChatMessageTypeState extends P_StatefulWidgetState<ChatMessage> {
           topRight: topRight);
     }
 
-    return Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: mainAxisAlignment,
-        children: [
-          Flexible(
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
             child: Container(
-                margin: margin,
-                padding: EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: borderRadius,
-                ),
-                child: Column(
+              decoration: BoxDecoration(
+                shape: BoxShape.rectangle,
+                color: Theme.of(context).colorScheme.secondary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: chat_object.type == 3
-                      ? CrossAxisAlignment.center
-                      : CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (!widget.isMe &&
-                        (chat_object.type == 2) &&
-                        !widget.sameAsLast)
-                      Row(
+                    if (widget.tag['text'] != null)
+                      Container(
+                        margin: EdgeInsets.only(top: 5, left: 5, right: 5),
+                        padding: EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: borderRadius,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(widget.tag['text']),
+                            widget.date_time_widget,
+                          ],
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            widget.tag['sender'],
-                            style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600),
+                          MaterialButton(
+                            onPressed: () {},
+                            child: Text('Copy'),
+                          ),
+                          if (widget.isMe)
+                            MaterialButton(
+                              onPressed: () {
+                                var tag = Tag(widget.tag.dict);
+
+                                tag['id'] = null;
+                                tag['sent'] = false;
+                                tag['seen'] = false;
+                                tag['date_time'] = DATETIME();
+
+                                Client.activeClient?.send_chat_tag(tag);
+
+                                widget.screen_setState();
+                                Navigator.pop(context);
+                              },
+                              child: Text('Resend'),
+                            ),
+                          MaterialButton(
+                            onPressed: () {},
+                            child: Text('Forward'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              widget.chat_object.remove_chat(widget.tag['id']);
+                              widget.screen_setState();
+                              Navigator.pop(context);
+                            },
+                            child: Text('Delete'),
                           ),
                         ],
                       ),
-                    widget.messageWidget,
-                    Container(
-                      padding: EdgeInsets.only(top: 2),
-                      width: widget.isMe ? 125 : 115,
-                      child: Row(children: [
-                        widget.date_time_widget,
-                        if (widget.isMe)
-                          SizedBox(
-                            width: 2,
-                          ),
-                        if (widget.isMe)
-                          Icon(
-                            widget.tag['sent'] ?? false
-                                ? Icons.check_circle_outline
-                                : Icons.history,
-                            size: 10,
-                            color: Colors.grey.shade800,
-                          )
-                      ]),
                     ),
-                  ],
-                )),
-          )
-        ]);
+                  ]),
+            ),
+          ),
+        );
+      },
+      child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: mainAxisAlignment,
+          children: [
+            Flexible(
+              child: Container(
+                  margin: margin,
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: borderRadius,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: chat_object.type == 3
+                        ? CrossAxisAlignment.center
+                        : CrossAxisAlignment.end,
+                    children: [
+                      if (!widget.isMe &&
+                          (chat_object.type == 2) &&
+                          !widget.sameAsLast)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              widget.tag['sender'],
+                              style: TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      widget.messageWidget,
+                      Container(
+                        padding: EdgeInsets.only(top: 2),
+                        width: widget.isMe ? 125 : 115,
+                        child: Row(children: [
+                          widget.date_time_widget,
+                          if (widget.isMe)
+                            SizedBox(
+                              width: 2,
+                            ),
+                          if (widget.isMe)
+                            Icon(
+                              widget.tag['sent'] ?? false
+                                  ? Icons.check_circle_outline
+                                  : Icons.history,
+                              size: 10,
+                              color: Colors.grey.shade800,
+                            )
+                        ]),
+                      ),
+                    ],
+                  )),
+            )
+          ]),
+    );
   }
 }
 
@@ -466,7 +549,6 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
     var tag = widget.client.RECV_LOG.value;
     if (ACTION['CHAT'] == tag['action']) newMessage = true;
     setState(() {});
-    print(tag);
   }
 
   @override
@@ -477,13 +559,12 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
   }
 
   void scrollDown() {
-    if (lastKey.currentContext != null)
-      Scrollable.ensureVisible(lastKey.currentContext!,
-          duration: Duration(milliseconds: 500), alignment: 1);
-    // chats.smoothScrollToPosition(chats.size() - 1);
-    // scroller.animateTo(0.0,
-    //     duration: Duration(microseconds: 200),
-    //     curve: Curves.fastLinearToSlowEaseIn);
+    // if (lastKey.currentContext != null)
+    //   Scrollable.ensureVisible(lastKey.currentContext!,
+    //       duration: Duration(milliseconds: 500), alignment: 1);
+    scroller.animateTo(scroller.position.maxScrollExtent,
+        duration: Duration(microseconds: 200),
+        curve: Curves.fastLinearToSlowEaseIn);
   }
 
   User get user => widget.user;
@@ -656,8 +737,6 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('here');
-
     String status = 'OFFLINE';
     double fontSize = 13;
     bool online = false;
@@ -679,12 +758,16 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
       itemCount: widget.chats.length,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemBuilder: (BuildContext context, int index) {
-        return ChatMessage(widget, index,
-            key: widget.chats.length == index + 1 ? lastKey : null);
+        return ChatMessage(
+          widget,
+          index,
+          () => setState(() {}),
+          key: widget.chats.length == index + 1 ? lastKey : null,
+        );
       },
     );
 
-    Timer(Duration(milliseconds: 500), scrollDown);
+    Timer(Duration(milliseconds: 300), scrollDown);
 
     return Scaffold(
       key: key,
@@ -702,26 +785,27 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ClipRRect(
-                    borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10)),
-                    child: Stack(
-                      alignment: AlignmentDirectional.bottomEnd,
-                      children: [
-                        chats,
-                        if (newMessage)
-                          IconButton(
-                            splashColor: Theme.of(context).primaryColor,
-                            color: Theme.of(context).primaryColor,
-                            icon: Icon(Icons.arrow_drop_down_circle_outlined),
-                            onPressed: () {
-                              newMessage = false;
-                              setState(() {});
-                              scrollDown();
-                            },
-                          ),
-                      ],
-                    )),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10)),
+                  child: Stack(
+                    alignment: AlignmentDirectional.bottomEnd,
+                    children: [
+                      chats,
+                      if (newMessage)
+                        IconButton(
+                          splashColor: Theme.of(context).primaryColor,
+                          color: Theme.of(context).primaryColor,
+                          icon: Icon(Icons.arrow_drop_down_circle_outlined),
+                          onPressed: () {
+                            newMessage = false;
+                            setState(() {});
+                            scrollDown();
+                          },
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
             if (hasFooter[0] != null) _buildMessageComposer(),

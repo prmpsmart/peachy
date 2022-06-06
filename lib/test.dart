@@ -1,5 +1,6 @@
 import 'backend/tag.dart';
 import 'backend/user.dart';
+// import 'backend/database.dart';
 // import 'backend/client.dart';
 
 void main(List<String> args) {
@@ -138,7 +139,7 @@ void main(List<String> args) {
     }
   });
   User user = User('ade3', 'ade3', name: 'ade3');
-  user.load_data(tag);
+  // user.load_data(tag);
   // print(user.recv_data);
   print(user.contacts.objects_);
   print(user.groups?.objects_);

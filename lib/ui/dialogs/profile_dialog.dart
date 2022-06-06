@@ -6,6 +6,7 @@ import 'package:peachy/backend/constants.dart';
 import 'package:peachy/backend/multi_users.dart';
 import 'package:peachy/backend/tag.dart';
 import 'package:peachy/backend/user.dart';
+import 'package:peachy/backend/utils.dart';
 import '../ui_utils.dart';
 import 'server_dialog.dart';
 
@@ -305,7 +306,6 @@ class _ProfileDialogState extends P_StatefulWidgetState<ProfileDialog>
 }
 
 class ClientProfileDialog extends P_StatefulWidget {
-
   Client client;
 
   User get user => client.user as User;
@@ -337,7 +337,7 @@ class _ClientProfileDialogState
     widget.client.RECV_LOG.addListener(listener);
 
     nameTC = TextEditingController(text: user.name);
-    keyTC = TextEditingController(text: user.key);
+    keyTC = TextEditingController(text: B64_DECODE_TO_STRING(user.key));
     bioTC = TextEditingController(text: user.bio);
   }
 
@@ -387,13 +387,15 @@ class _ClientProfileDialogState
                       value ? saveIcon : editIcon,
                       () => setState(() {
                             if (value) {
-                              if (tc.text != text) {
+                              String _text = tc.text;
+                              if (attr == 'Key') _text = B64_ENCODE(_text);
+
+                              if (_text != text) {
                                 var tag = getChangeTag(
                                   TYPE['USER'],
                                   user.id,
-                                  Tag({attr.toLowerCase(): tc.text}),
+                                  Tag({attr.toLowerCase(): _text}),
                                 );
-                                // tc.text = '';
                                 user.set_pending_change_data(tag['data']);
                                 widget.client.send_action_tag(tag);
                                 print(tag);
@@ -460,8 +462,8 @@ class _ClientProfileDialogState
                   ),
                 ),
                 Divider(height: 2),
-                getDataView(keyTC, user.key, 'Key', keyBool,
-                    (bool value) => keyBool = value),
+                getDataView(keyTC, B64_DECODE_TO_STRING(user.key), 'Key',
+                    keyBool, (bool value) => keyBool = value),
                 Divider(height: 2),
                 getDataView(bioTC, user.bio, 'Bio', bioBool,
                     (bool value) => bioBool = value),
@@ -486,10 +488,14 @@ class _ClientProfileDialogState
                 ),
                 Padding(
                   padding: edge_padding,
-                  child: iconNButton('Server Settings', Icons.settings,
-                      func: () => showDialog(
-                          context: context,
-                          builder: (BuildContext builder) => ServerDialog())),
+                  child: iconNButton(
+                    'Server Settings',
+                    Icons.settings,
+                    func: () => showDialog(
+                      context: context,
+                      builder: (BuildContext builder) => ServerDialog(),
+                    ),
+                  ),
                 ),
               ],
             ),

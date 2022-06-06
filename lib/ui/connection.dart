@@ -12,7 +12,6 @@ import 'widgets/toast.dart';
 class ConnectionWidget extends P_StatefulWidget {
   Client? _client;
   bool showPop;
-  int COUNT = 0;
 
   User? get user => _client?.user;
 
@@ -132,8 +131,6 @@ class ConnectionWidgetState<C_W extends ConnectionWidget>
   }
 
   void connect() async {
-    widget.COUNT += 1;
-
     _showToast(String text, {int duration = 3000}) {
       if (showToast && mounted)
         peachyToast(context, text, duration: duration, toast: toast);
@@ -147,7 +144,7 @@ class ConnectionWidgetState<C_W extends ConnectionWidget>
       return;
     }
 
-    if (ServerSettings.loaded) {
+    if (ServerSettings.LOADED) {
       sentConnect = true;
       bool connected = await client.connect();
 
@@ -157,8 +154,13 @@ class ConnectionWidgetState<C_W extends ConnectionWidget>
         _showToast('Server Error!\nRetrying in 5 seconds!', duration: 5000);
 
       sentConnect = false;
-    } else
+    } else {
       _showToast('Set the Server details', duration: 1500);
+      Timer(Duration(milliseconds: 1500), () async {
+        await ServerSettings.load();
+        connect();
+      });
+    }
     setState(() {});
   }
 }

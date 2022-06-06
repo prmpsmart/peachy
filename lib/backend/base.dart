@@ -59,9 +59,10 @@ class p_User_Base extends Base {
       {String name = '',
       String icon = '',
       DateTime? date_time,
-      String bio = ''})
+      String bio = '',
+      last_seen})
       : super(id, name: name, icon: icon, bio: bio, date_time: date_time) {
-    // last_seen = DateTime.now();
+    if (last_seen is int) set_last_seen(last_seen);
     change_status(STATUS['OFFLINE']);
   }
 
@@ -91,6 +92,10 @@ class p_User_Base extends Base {
       int last = (status is int) ? status : 0;
       if (last != 0) last_seen = DATETIME(date_time: last, num: false);
     }
+  }
+
+  void set_last_seen(int last_seen) {
+    this.last_seen = DATETIME(date_time: last_seen, num: false);
   }
 }
 

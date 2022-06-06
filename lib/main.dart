@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'ui/dialogs/camera.dart';
-import 'ui/screens/create_user.dart';
-import 'ui/screens/login.dart';
-import 'ui/screens/peachy_home.dart';
-import 'backend/client.dart';
-import 'ui/ui_utils.dart';
-import 'ui/screens/peachy_splash.dart';
-import 'ui/screens/signup.'
-    'dart';
+
+import './backend/client.dart';
+import './backend/user_db.dart';
+
+import './ui/dialogs/camera.dart';
+import './ui/screens/create_user.dart';
+import './ui/screens/login.dart';
+import './ui/screens/peachy_home.dart';
+import './ui/ui_utils.dart';
+import './ui/screens/peachy_splash.dart';
+import './ui/screens/signup.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,10 @@ class _PeachyAppState extends State<PeachyApp> {
 
   @override
   void initState() {
+    User_DB.init().then((value) {
+      User_DB.load_server_settings();
+      User_DB.load_last_user();
+    });
     super.initState();
   }
 

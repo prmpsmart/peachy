@@ -11,7 +11,9 @@ class Tag with Mixin {
   static List<int> DELIMITER = GETBYTES(STR_DELIMITER);
   Map OBJECTS = {};
 
-  Tag(Map kwargs) {
+  Tag(Map kwargs_) {
+    Map kwargs = Map.from(kwargs_);
+
     kwargs['mobile'] = true;
 
     if ((!kwargs.containsKey('date_time')) &&
@@ -25,9 +27,9 @@ class Tag with Mixin {
         if (v is List<int>) vv = v;
       }
 
-      if (TAG.list.contains(k)) {
+      if (TAG.list.contains(k.toString().toUpperCase())) {
         kk = TAG[k];
-        if (kk.list.contains(v)) vv = kk[v];
+        if (kk.list.contains(v.toString().toUpperCase())) vv = kk[v];
       } else if (TAG['ID'] == k)
         vv = v.toString().toLowerCase();
       else if (TAG['DATE_TIME'] == k)
@@ -65,7 +67,7 @@ class Tag with Mixin {
       } else if (value is Tag) {
         v = value.dict;
       } else if (value is DateTime) {
-        v = value;
+        v = DATETIME(date_time: value);
       } else if (value is Base) {
         v = value.id;
       } else if (value is Tuple) {
@@ -85,50 +87,21 @@ class Tag with Mixin {
   }
 
   String get encode {
-    String string = jsonEncode(dict) + STR_DELIMITER;
-    return string;
+    var string = jsonEncode(dict);
+    var bytes = GETBYTES(string);
+    var encoded = B64_ENCODE(bytes) + STR_DELIMITER;
+    return encoded;
   }
 
-  static Tag decode_dict(Map dict) {
-    return Tag(dict);
+  static Tag decode(String encoded) {
+    var bytes = B64_DECODE(encoded);
+    var string = GETSTRING(bytes);
+    Map map = jsonDecode(string);
+    return Tag(map);
   }
 
   void forEach(void Function(dynamic, dynamic) action) =>
       OBJECTS.forEach(action);
-
-  static Tag decode(List<int> data) {
-    var _decoded = GETSTRING(data);
-    return decode_string(_decoded);
-  }
-
-  static Tag decode_string(String string) {
-    string = string.replaceAll(STR_DELIMITER, '');
-    Map<String, dynamic> decoded = jsonDecode(string);
-    return Tag(decoded);
-  }
-
-  static List<Tag> decodes(List<int> data) {
-    var list = <Tag>[];
-    var _decodes = GETSTRING(data);
-    var _decodes_list = _decodes.split(STR_DELIMITER);
-
-    _decodes_list.forEach((element) {
-      if (element is String && element.isNotEmpty) {
-        var map = jsonDecode(element);
-        list.add(Tag(map));
-      }
-    });
-
-    return list;
-  }
-
-  String get kwargs {
-    var _str = '';
-    OBJECTS.forEach((key, value) {
-      _str += '$key=$value, ';
-    });
-    return _str.substring(0, _str.length - 2);
-  }
 
   dynamic operator [](attr) {
     if (attr is Tuple) {
@@ -152,19 +125,19 @@ class Tag with Mixin {
       for (int i = 0; i < keys.length; i++)
         if (keys[i].toString().toUpperCase() == attr.toUpperCase()) {
           value = OBJECTS[keys[i]];
+          if (value is Map) value = Tag(value);
           break;
         }
-
       return value;
     }
   }
 
   void operator []=(dynamic key, dynamic value) {
     if (key is String) {
-      OBJECTS[key.toUpperCase()] = value;
-    } else {
-      OBJECTS[key] = value;
+      key = key.toUpperCase();
+      if (TAG.list.contains(key)) key = TAG[key];
     }
+    OBJECTS[key] = value;
   }
 
   dynamic get_date_time() {

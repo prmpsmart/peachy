@@ -1,56 +1,37 @@
 // ignore_for_file: non_constant_identifier_names, camel_case_types
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 
 import 'multi_users.dart';
 import 'constants.dart';
 import 'tag.dart';
 import 'user.dart';
+import 'user_db.dart';
 import 'utils.dart';
 
 class ServerSettings {
-  static String ip = '';
-  static int port = 0;
-  static bool loaded = false;
+  static String IP = '';
+  static int PORT = 0;
+  static bool LOADED = false;
 
-  static Future<File?> getPath() async {
-    var filesDir = await getExternalStorageDirectory();
-    File file;
-
-    if (filesDir != null) {
-      file = File(filesDir.path + '/server.txt');
-      file.create();
-      return file;
-    }
-  }
-
-  static get details => 'ServerSettings(ip=$ip, port=$port, loaded=$loaded)';
+  static get details => 'ServerSettings(IP=$IP, PORT=$PORT, LOADED=$LOADED)';
 
   static load() async {
-    if (loaded) return;
+    if (LOADED) return;
 
-    File? file = await getPath();
-    if (file != null) {
-      file.openRead();
-      file.readAsString().then((read) {
-        if (read.isNotEmpty && read.contains(';')) {
-          List<String> reads = read.split(';');
-          ip = reads[0];
-          port = int.parse(reads[1]);
-        }
-      });
-      loaded = true;
+    String read = await User_DB.load_server_settings();
+
+    if (read.isNotEmpty && read.contains(';')) {
+      List<String> reads = read.split(';');
+      IP = reads[0];
+      PORT = int.parse(reads[1]);
+      LOADED = true;
     }
   }
 
   static save() async {
-    File? file = await getPath();
-    if (file != null) {
-      file.openWrite();
-      file.writeAsString('$ip;$port');
-    }
+    User_DB.update_server_settings(IP, PORT);
   }
 }
 
@@ -77,7 +58,7 @@ class Sock with Mixin {
     if (connecting || alive) return alive;
     connecting = true;
     try {
-      socket = await Socket.connect(ServerSettings.ip, ServerSettings.port);
+      socket = await Socket.connect(ServerSettings.IP, ServerSettings.PORT);
       state = SOCKET['ALIVE'];
       onConnect!();
       socket!.listen(listen, onError: _onError, onDone: onDone);
@@ -115,12 +96,14 @@ class Sock with Mixin {
         ready_data = datas.getRange(0, datas.length - 1).toList();
       }
 
-      ready_data.forEach((rdata) {
-        if (rdata.isNotEmpty) {
-          Tag tag = Tag.decode_string(rdata);
-          parse(tag);
-        }
-      });
+      ready_data.forEach(
+        (rdata) {
+          if (rdata.isNotEmpty) {
+            Tag tag = Tag.decode(rdata);
+            parse(tag);
+          }
+        },
+      );
     }
   }
 
@@ -163,7 +146,7 @@ class Client {
 
   @override
   String toString() {
-    return 'Client(ip=${ServerSettings.ip} port=${ServerSettings.port}, user=$user)';
+    return 'Client(IP=${ServerSettings.IP} PORT=${ServerSettings.PORT}, user=$user)';
   }
 
   Client({this.user, this.relogin = true, this.statusWatcher}) {
@@ -240,11 +223,14 @@ class Client {
 
     assert(id.isNotEmpty && key.isNotEmpty);
 
-    var tag =
-        Tag({'id': id, 'name': name, 'key': key, 'action': ACTION['SIGNUP']});
+    var tag = Tag({
+      'id': id,
+      'name': name,
+      'key': B64_ENCODE(key),
+      'action': ACTION['SIGNUP']
+    });
 
     if (!await connect()) return RESPONSE['FAILED'];
-    print(tag);
 
     try {
       send_tag(tag);
@@ -266,17 +252,28 @@ class Client {
   }
 
   Function(CONSTANT)? login_log;
+  String RAW_KEY = '';
 
   Future<CONSTANT> login(
       {String id = '', String key = '', Function(CONSTANT)? receiver}) async {
     login_log = receiver;
 
-    id = id.isNotEmpty ? id : this.user?.id ?? '';
-    key = key.isNotEmpty ? key : this.user?.key ?? '';
+    id = id.isNotEmpty ? id : user?.id ?? '';
+    if (key.isEmpty) {
+      if (user != null) key = user!.key;
+    } else {
+      key = RAW_KEY = B64_ENCODE(key);
+    }
+
+    key = ENCRYPT(key);
 
     if (id.isEmpty && key.isEmpty) return RESPONSE['EXTINCT'];
 
-    var tag = Tag({'id': id, 'key': key, 'action': ACTION['LOGIN']});
+    var tag = Tag({
+      'id': id,
+      'key': key,
+      'action': ACTION['LOGIN'],
+    });
 
     if (!await connect()) return RESPONSE['FAILED'];
 
@@ -297,10 +294,13 @@ class Client {
   void login_receiver(Tag tag) {
     if (RESPONSE['SUCCESSFUL'] == tag['response']) {
       _stop = false;
-      user = User(tag['id'], tag['key']);
+
+      if ((user == null) || (tag['id'] != user!.id))
+        user = User(tag['id'], RAW_KEY);
+
       user!.change_status(STATUS['ONLINE']);
 
-      if (!user!.recv_data) send_data(user!.id);
+      if (!(user!.recv_data)) send_data(user!.id);
     }
     if (login_log != null) login_log!(tag['response']);
   }
@@ -379,10 +379,10 @@ class Client {
         Tag tag = send_chat_tag(chat, resend: true);
         sleep(Duration(seconds: 1));
 
-        bool sent = tag['sent'] ?? false;
+        bool? sent = tag['sent'];
 
-        if (sent) {
-          this.user!.queued.remove(key);
+        if (sent == true) {
+          this.user!.remove_queued(key);
           if (ACTION['CHAT'] == tag['action']) CHAT_STATUS.value = tag;
         }
       });

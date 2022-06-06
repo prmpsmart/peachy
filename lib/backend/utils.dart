@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names, camel_case_types
 
 import 'package:intl/intl.dart';
+import 'package:crypto/crypto.dart';
 
 import 'multi_users.dart';
 import 'dart:collection';
@@ -49,11 +50,9 @@ String EXISTS(dynamic manager, dynamic obj) {
   }
 }
 
-List<int> GETBYTES(String string) =>
-    string.codeUnits; // return utf8.encode(string);
+List<int> GETBYTES(String string) => utf8.encode(string);
 
-String GETSTRING(List<int> bytes) =>
-    String.fromCharCodes(bytes); // return utf8.decode(string);
+String GETSTRING(List<int> bytes) => utf8.decode(bytes);
 
 mixin Mixin {
   String get className => runtimeType.toString();
@@ -65,11 +64,14 @@ List<dynamic> ATTRS(dynamic objec, List<String> attrs) {
   return res;
 }
 
+String ENCRYPT(String string) {
+  var id_byt = GETBYTES(string);
+  return sha224.convert(id_byt).toString();
+}
+
 String GENERATE_ID(List<dynamic> column) {
   String id = column.join("|");
-  // return id;
-  var id_byt = GETBYTES(id);
-  return B64_ENCODE(id_byt);
+  return ENCRYPT(id);
 }
 
 void GENERATE_ACTION_ID(Tag tag) {
@@ -110,8 +112,16 @@ void GENERATE_CHAT_ID(Tag tag) {
 void GENERATE_MEMBER_ID(Tag tag, String manager_id, Type manager_type) =>
     tag['unique_id'] = GENERATE_ID([tag['id'], manager_id, manager_type]);
 
-String B64_ENCODE(List<int> data) => base64Encode(data);
+String B64_ENCODE(data) {
+  if (data is String) data = GETBYTES(data);
+  assert(data is List<int>, 'Data must be List<int>');
+  String ret = base64Encode(data);
+  return ret;
+}
+
 List<int> B64_DECODE(String string) => base64Decode(string);
+
+String B64_DECODE_TO_STRING(String string) => GETSTRING(B64_DECODE(string));
 
 class Tuple<Tup> extends ListBase<Tup> {
   final List<Tup> _list = [];

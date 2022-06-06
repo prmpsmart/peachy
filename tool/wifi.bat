@@ -1,7 +1,9 @@
 @echo off
 
+@REM adb disconnect
+
 @REM Loveth / Mum
-adb connect 192.168.43.143:44387
+adb connect 192.168.43.37:39511
 
 @REM Jummy
 @REM adb connect 192.168.43.103:32791

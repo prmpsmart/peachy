@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:peachy/backend/constants.dart';
 import 'package:peachy/backend/client.dart';
 import 'package:peachy/backend/user.dart';
+import 'package:peachy/backend/user_db.dart';
 import '../connection.dart';
 import '../ui_utils.dart';
 import '../dialogs/new_dialog.dart';
@@ -38,6 +39,17 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
 
     widget.client.RECV_LOG.addListener(listener);
 
+    User.FINISHED_LOADING.addListener(
+      () {
+        setState(
+          () {
+            print('finished loading');
+          },
+        );
+      },
+    );
+    User_DB.load_user_data(user);
+
     super.initState();
   }
 
@@ -48,11 +60,11 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
       client.login(receiver: (response) {
         String toast = 'Login FAILED!';
         bool succeed = RESPONSE['SUCCESSFUL'] == response;
-        if (succeed) 
+        if (succeed)
           toast = 'Login SUCCESSFUL!';
-          
-         else if (RESPONSE['SIMULTANEOUS_LOGIN'] == response)
+        else if (RESPONSE['SIMULTANEOUS_LOGIN'] == response)
           toast = 'SIMULTANEOUS_LOGIN!';
+        else if (RESPONSE['FALSE_KEY'] == response) toast = 'Wrong Pasword!';
         peachyToast(context, toast, duration: 2000);
         setState(() {});
       });
@@ -131,10 +143,13 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
         elevation: 2,
         actions: [
           IconButton(
-              icon: Icon(Icons.search),
+              icon: Icon(Icons.person_search_rounded),
               iconSize: 25.0,
               color: Colors.white,
-              onPressed: () {}),
+              onPressed: () {
+                print('');
+                User_DB.load_user_data(user);
+              }),
         ],
         bottom: TabBar(
           controller: tabController,

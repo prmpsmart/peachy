@@ -1,9 +1,12 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:convert';
+
 import 'utils.dart';
 import 'base.dart';
 import 'tag.dart';
 import 'user.dart';
+import 'user_db.dart';
 
 class Manager extends p_Manager {
   Function(User, Tag)? OBJ;
@@ -11,11 +14,11 @@ class Manager extends p_Manager {
   Manager(User user) : super(user);
 
   @override
-  dynamic add(dynamic tag) {
+  dynamic add(tag, {bool db = false}) {
     String id = tag['id'] ?? '';
     if (id != user.id) {
       if (OBJ != null) {
-        dynamic obj = get(id);
+        var obj = get(id);
 
         if (obj != null)
           obj.change_data(tag);
@@ -23,9 +26,16 @@ class Manager extends p_Manager {
           obj = OBJ!(user, tag);
           super.add(obj);
         }
+        if (!db) User_DB.ADD(obj);
         return obj;
       }
     }
+  }
+
+  @override
+  void remove(String id) {
+    super.remove(id);
+    User_DB.REMOVE(id);
   }
 }
 
@@ -63,13 +73,12 @@ mixin Chats {
   List<Tag> chats = [];
   DateTime? last_time = DateTime.now();
 
-  // Chats(this.user);
-
   void add_chat(Tag tag) {
-    String id = tag['id'];
-    if (!chats_dict.containsKey(id)) {
+    String? id = tag['id'];
+    if (id is String && !chats_dict.containsKey(id)) {
       last_time = tag.get_date_time() ?? DateTime.now();
-      tag['seen'] = tag['sender'] == user.id;
+      bool? seen = tag['seen'];
+      if (seen != true) tag['seen'] = tag['sender'] == user.id;
 
       chats.add(tag);
       chats_dict[id] = tag;
@@ -93,17 +102,21 @@ mixin Chats {
   int get unseens => unseen_chats().length;
 
   void remove_chat(String tag_id) {
-    if (!chats_dict.containsKey(tag_id)) {
+    if (chats_dict.containsKey(tag_id)) {
       Tag tag = chats_dict[tag_id] as Tag;
       chats_dict.remove(tag_id);
       chats.remove(tag);
+      User_DB.remove_chat(tag_id);
     }
   }
 }
 
 class Contact extends p_User_Base with Chats {
   Contact(User user, Tag tag)
-      : super(tag['id'], name: tag['name'], icon: tag['icon'] ?? '') {
+      : super(tag['id'],
+            name: tag['name'],
+            icon: tag['icon'] ?? '',
+            last_seen: tag['last_seen']) {
     this.user = user;
   }
 }
@@ -122,11 +135,15 @@ class MultiUsers extends Base with Chats {
     this.user = user;
 
     creator = tag['creator'] ?? '';
-    Tuple? users = tag['users'];
+    var members = tag['members'];
+
+    if (members is String) members = Tag(jsonDecode(members));
+
+    Tuple? users = members['users'];
     if (users != null) {
       users.forEach((p0) => this.users.add(p0 as String));
     }
-    Tuple? admins = tag['admins'];
+    Tuple? admins = members['admins'];
     if (admins != null) {
       admins.forEach((p0) => this.admins.add(p0 as String));
     }
@@ -158,13 +175,11 @@ class MultiUsers extends Base with Chats {
 class Group extends MultiUsers {
   final int type = 2;
   Group(User user, Tag tag) : super(user, tag) {
-    print(tag);
     only_admin = tag['only_admin'] ?? false;
   }
 
   @override
   void change_data(Tag tag) {
-    print(tag);
     super.change_data(tag);
     only_admin = tag['only_admin'] ?? false;
   }

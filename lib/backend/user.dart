@@ -1,7 +1,9 @@
 // ignore_for_file: non_constant_identifier_names, override_on_non_overriding_member
 
+import 'package:flutter/foundation.dart';
+
 import 'constants.dart';
-import 'database.dart';
+import 'user_db.dart';
 import 'base.dart';
 import 'multi_users.dart';
 import 'tag.dart';
@@ -17,16 +19,18 @@ class User extends p_User_Base {
   GroupsManager? groups;
   ChannelsManager? channels;
 
-  static User_DB load_user() => User_DB().load_user();
-
-  User_DB get user_db => User_DB();
-
   User(String id, String key,
       {String name = '',
       String icon = '',
       String bio = '',
-      DateTime? date_time})
-      : super(id, name: name, icon: icon, date_time: date_time, bio: bio) {
+      DateTime? date_time,
+      last_seen})
+      : super(id,
+            name: name,
+            icon: icon,
+            date_time: date_time,
+            bio: bio,
+            last_seen: last_seen) {
     this.key = key;
     users = ContactsManager(this);
     groups = GroupsManager(this);
@@ -43,14 +47,15 @@ class User extends p_User_Base {
     pending_change_data = null;
   }
 
-  void change_data(Tag tag) {
+  void change_data(Tag tag, {bool db: false}) {
     super.change_data(tag);
     String key = tag['key'] ?? '';
     if (key != '') this.key = key;
+    if (!db) User_DB.add_user(this);
   }
 
   void implement_change() {
-    print('implement_change: $pending_change_data');
+    print('IMPLEMENT CHANGE : $pending_change_data');
     if (pending_change_data != null) {
       change_data(pending_change_data as Tag);
       clear_pending_change_data();
@@ -58,7 +63,7 @@ class User extends p_User_Base {
   }
 
   void load_data(Tag tag) {
-    print('loading data: $tag');
+    print('LOADING DATA ');
 
     Tag data = tag['data'];
     name = data['name'] ?? '';
@@ -66,20 +71,22 @@ class User extends p_User_Base {
     bio = data['bio'] ?? '';
     change_status(data['status']);
 
-    _load_data(users as Manager, data['users']);
-    _load_data(groups as Manager, data['groups']);
-    _load_data(channels as Manager, data['channels']);
+    load_manager(users, data['users']);
+    load_manager(groups, data['groups']);
+    load_manager(channels, data['channels']);
     recv_data = true;
+
+    User_DB.add_user(this);
   }
 
-  void _load_data(Manager manager, datas) {
+  void load_manager(manager, datas, {bool db: false}) {
     datas.forEach((obj) {
-      manager.add(Tag(obj));
+      (manager as Manager).add(Tag(obj), db: db);
     });
   }
 
   @override
-  void add_chat(Tag tag, {bool saved: false}) {
+  void add_chat(Tag tag, {bool db: false}) {
     CONSTANT type = tag['type'];
 
     if (TYPE['CONTACT'] == type)
@@ -94,26 +101,27 @@ class User extends p_User_Base {
     if ((tag['sender'] == id) && (!tag['sent'])) {
       add_queued(tag);
     }
-    // if (!saved) user_db.add_chat(tag);
+    if (!db) User_DB.add_chat(this, tag);
   }
 
-  void add_queued(Tag tag) {
+  void add_queued(Tag tag, {bool db: false}) {
     if (!queued.containsKey(['id'])) queued[tag['id']] = tag;
+    if (!db) User_DB.add_queued(this, tag);
+  }
+
+  void remove_queued(String key) {
+    User_DB.add_queued(this, queued[key] as Tag);
+    queued.remove(key);
+  }
+
+  void chat_seen(Tag tag) {
+    tag['seen'] = true;
+    User_DB.add_chat(this, tag);
   }
 
   dynamic get_chat_object(String id) {
     return users![id] || groups![id] || channels![id];
   }
 
-  void add_user(p_User_Base user) {
-    users?.add(user);
-  }
-
-  void add_group(Group group) {
-    groups?.add(group);
-  }
-
-  void add_channel(MultiUsers channel) {
-    channels?.add(channel);
-  }
+  static ValueNotifier<bool> FINISHED_LOADING = ValueNotifier(false);
 }

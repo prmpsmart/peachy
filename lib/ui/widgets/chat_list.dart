@@ -42,7 +42,6 @@ class _ChatListState extends P_StatefulWidgetState<ChatList> {
     return Container(
       color: Colors.white,
       child: ListView.builder(
-        scrollDirection: Axis.vertical,
         itemCount: manager.length,
         itemBuilder: (BuildContext context, int index) {
           var chat_object = manager[index];

@@ -13,9 +13,9 @@ class _ServerDialogState extends P_StatefulWidgetState<ServerDialog> {
 
   @override
   void initState() {
-    ipCont = TextEditingController(text: ServerSettings.ip);
+    ipCont = TextEditingController(text: ServerSettings.IP);
     String port = '';
-    port = '${ServerSettings.port}';
+    port = '${ServerSettings.PORT}';
     portCont = TextEditingController(text: port);
     super.initState();
   }
@@ -65,8 +65,8 @@ class _ServerDialogState extends P_StatefulWidgetState<ServerDialog> {
                 String port = portCont!.text;
 
                 if (ip.isNotEmpty && port.isNotEmpty) {
-                  ServerSettings.ip = ip;
-                  ServerSettings.port = int.parse(port);
+                  ServerSettings.IP = ip;
+                  ServerSettings.PORT = int.parse(port);
                   ServerSettings.save();
                   Navigator.pop(context);
                 } else

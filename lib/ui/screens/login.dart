@@ -1,12 +1,12 @@
 // ignore_for_file: must_be_immutable
 
 import 'dart:async';
+import 'package:peachy/backend/user_db.dart';
+import 'package:peachy/backend/client.dart';
+import 'package:peachy/backend/constants.dart';
 
 import 'package:flutter/material.dart';
-import 'package:peachy/backend/user.dart';
-import 'package:peachy/backend/client.dart';
 import '../ui_utils.dart';
-import 'package:peachy/backend/constants.dart';
 
 class PeachyLogin extends P_StatefulWidget {
   Client? client;
@@ -27,6 +27,7 @@ class _PeachyLoginState extends P_StatefulWidgetState<PeachyLogin>
   Timer? statusTimer;
 
   Client get client => widget.client as Client;
+  List<String> users = [];
 
   @override
   void initState() {
@@ -45,10 +46,14 @@ class _PeachyLoginState extends P_StatefulWidgetState<PeachyLogin>
     });
 
     userCont = TextEditingController(text: client.user?.id);
-    passCont = TextEditingController(text: client.user?.key);
+    passCont = TextEditingController(text: client.user?.key ?? 'ade1');
 
     statusTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (client.alive) setState(() {});
+    });
+
+    User_DB.load_last_logged_user().then((value) {
+      userCont.text = value.isEmpty ? client.user?.id ?? '' : value;
     });
   }
 
@@ -106,11 +111,12 @@ class _PeachyLoginState extends P_StatefulWidgetState<PeachyLogin>
                         Navigator.pop(context);
                         return;
                       }
+                      String id = userCont.text.trim();
 
                       if (userCont.text.isNotEmpty &&
                           passCont.text.isNotEmpty) {
-                        client.login(
-                          id: userCont.text.trim(),
+                        await client.login(
+                          id: id,
                           key: passCont.text.trim(),
                           receiver: (response) {
                             String toast = 'Login failed!';
@@ -126,6 +132,7 @@ class _PeachyLoginState extends P_StatefulWidgetState<PeachyLogin>
                             peachyToast(context, toast, duration: 2000);
                             if (succeed) {
                               // Navigator.pop(context);
+                              User_DB.update_last_logged_user(id);
                               Navigator.pushReplacementNamed(context, '/home',
                                   arguments: client);
                             }

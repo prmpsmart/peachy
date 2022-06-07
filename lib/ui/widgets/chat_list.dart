@@ -30,7 +30,7 @@ class _ChatListState extends P_StatefulWidgetState<ChatList> {
   void listener() => setState(() {});
   @override
   void initState() {
-    client.RECV_LOG.addListener(listener);
+    Client.RECV_LOG.addListener(listener);
     super.initState();
   }
 
@@ -242,7 +242,7 @@ class _ChatListState extends P_StatefulWidgetState<ChatList> {
 
   @override
   void dispose() {
-    client.RECV_LOG.removeListener(listener);
+    Client.RECV_LOG.removeListener(listener);
     super.dispose();
   }
 }

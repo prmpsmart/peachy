@@ -5,13 +5,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:peachy/backend/client.dart';
-import 'package:peachy/backend/multi_users.dart';
-import 'package:peachy/backend/user.dart';
-import 'package:peachy/backend/tag.dart';
-import 'package:peachy/backend/constants.dart';
-import 'package:peachy/backend/utils.dart';
+
 import 'package:camera/camera.dart';
+
+import 'package:peachy/backend/client.dart';
+import 'package:peachy/backend/utils.dart';
+
 import '../dialogs/image_dialogs.dart';
 import '../ui_utils.dart';
 import '../dialogs/profile_dialog.dart';
@@ -42,10 +41,7 @@ class _AudioTypeState extends P_StatefulWidgetState<AudioType> {
         max: 100,
         label: '$sliderValue %',
         onChanged: (newValue) {
-          setState(() {
-            sliderValue = newValue;
-            // print(newValue);
-          });
+          setState(() => sliderValue = newValue);
         });
 
     return SizedBox(
@@ -177,10 +173,8 @@ class _MessageTypeState extends P_StatefulWidgetState<MessageType> {
 
 class TextType extends Text {
   TextType(Tag tag)
-      : super(
-          tag['text'],
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400),
-        );
+      : super(tag['text'],
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400));
 }
 
 class ImageType extends MessageType {
@@ -364,7 +358,7 @@ class ChatMessageState extends P_StatefulWidgetState<ChatMessage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(widget.tag['text']),
-                            widget.date_time_widget,
+                            widget.date_time_widget
                           ],
                         ),
                       ),
@@ -484,38 +478,60 @@ class ChatMenu extends P_StatefulWidget {
 }
 
 class _ChatMenuState extends P_StatefulWidgetState<ChatMenu> {
+  dynamic get chat_object => widget.chatScreenState.widget.chat_object;
+
   @override
   Widget build(BuildContext context) {
+    String name = '';
+    if (chat_object is Contact)
+      name = 'Contact';
+    else if (chat_object is Group)
+      name = 'Group';
+    else if (chat_object is Channel) name = 'Channel';
+
     return Container(
-        margin: EdgeInsets.only(right: 10),
-        decoration: BoxDecoration(
-          shape: BoxShape.rectangle,
-          color: Theme.of(context).colorScheme.secondary,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            MaterialButton(
-              onPressed: () {
-                showDialog(
-                    context: context,
-                    builder: (context) => ProfileDialog(
-                        widget.chatScreenState.chat_object,
-                        widget.chatScreenState.widget.client));
-              },
-              child: Text('Info'),
-            ),
-            MaterialButton(
-              onPressed: () {},
-              child: Text('Clear Chat'),
-            ),
-            MaterialButton(
-              onPressed: () {},
-              child: Text('Delete'),
-            ),
-          ],
-        ));
+      margin: EdgeInsets.only(right: 10),
+      decoration: BoxDecoration(
+        shape: BoxShape.rectangle,
+        color: Theme.of(context).colorScheme.secondary,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MaterialButton(
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  builder: (context) => ProfileDialog(
+                      widget.chatScreenState.chat_object,
+                      widget.chatScreenState.widget.client));
+            },
+            child: Text('Info'),
+          ),
+          MaterialButton(
+            onPressed: () {
+              List chats = List.from(chat_object.chats);
+              for (Tag chat in chats) chat_object.remove_chat(chat['id']);
+              widget.chatScreenState.setState(() {});
+            },
+            child: Text('Clear Chats'),
+          ),
+          TextButton(
+            onPressed: () {
+              Client.activeClient?.send_action_tag(Tag({}));
+            },
+            child: Text('Delete $name'),
+          ),
+          TextButton(
+            onPressed: () {
+              Client.activeClient?.send_action_tag(Tag({}));
+            },
+            child: Text('Block $name'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -546,7 +562,7 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
   late ChatMenu chatMenu;
 
   void listener() {
-    var tag = widget.client.RECV_LOG.value;
+    var tag = Client.RECV_LOG.value;
     if (ACTION['CHAT'] == tag['action']) newMessage = true;
     setState(() {});
   }
@@ -554,7 +570,7 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
   @override
   void initState() {
     chatMenu = ChatMenu(this);
-    widget.client.RECV_LOG.addListener(listener);
+    Client.RECV_LOG.addListener(listener);
     super.initState();
   }
 
@@ -744,14 +760,16 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
     if (chat_object.type == 1) {
       var contact = chat_object as Contact;
       dynamic _status = contact.current_status;
-      if (STATUS["ONLINE"] == _status) {
+      if (widget.client.online && STATUS["ONLINE"] == _status) {
         status = 'ONLINE';
         online = true;
       } else if (contact.last_seen != null) {
+        if (_status is String) _status = DATETIME();
         status = OFFLINE_FORMAT(_status);
         fontSize = 9;
       }
     }
+
     chats = ListView.builder(
       padding: EdgeInsets.only(bottom: 10),
       controller: scroller,
@@ -818,7 +836,7 @@ class _ChatScreenState extends P_StatefulWidgetState<ChatScreen> {
 
   @override
   void dispose() {
-    widget.client.RECV_LOG.removeListener(listener);
+    Client.RECV_LOG.removeListener(listener);
     super.dispose();
   }
 }

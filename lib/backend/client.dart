@@ -10,6 +10,12 @@ import 'user.dart';
 import 'user_db.dart';
 import 'utils.dart';
 
+export 'constants.dart';
+export 'tag.dart';
+export 'user_db.dart';
+export 'multi_users.dart';
+export 'user.dart';
+
 class ServerSettings {
   static String IP = '';
   static int PORT = 0;
@@ -75,11 +81,13 @@ class Sock with Mixin {
   void onDone() {
     state = SOCKET['CLOSED'];
     if (onClose != null) onClose!();
+    Client.RECV_LOG.value = Tag({});
   }
 
   void _onError(e) {
     state = SOCKET['RESET'];
     if (onError != null) onError!(e);
+    Client.RECV_LOG.value = Tag({});
   }
 
   void listen(List<int> buffer) {
@@ -135,8 +143,8 @@ class Client {
 
   Function(bool)? statusWatcher;
 
-  ValueNotifier<Tag> RECV_LOG = ValueNotifier(Tag({}));
-  ValueNotifier<Tag> CHAT_STATUS = ValueNotifier(Tag({}));
+  static ValueNotifier<Tag> RECV_LOG = ValueNotifier(Tag({}));
+  static ValueNotifier<Tag> CHAT_STATUS = ValueNotifier(Tag({}));
 
   Map<CONSTANT, TAG_RECEIVER> receivers = {};
 
@@ -337,7 +345,10 @@ class Client {
     gone_offline();
   }
 
-  void gone_offline() => user?.change_status(STATUS['OFFLINE']);
+  void gone_offline() {
+    user?.change_status(STATUS['OFFLINE']);
+    RECV_LOG.value = Tag({});
+  }
 
   // senders
   dynamic send_data(String id, {dynamic type = 'CONTACT'}) {
@@ -439,7 +450,10 @@ class Client {
     var data = tag['data'];
     if ((RESPONSE['SUCCESSFUL'] == tag['response']) && (data != null)) {
       var add = get_add_method(add_type);
-      if (add != null) tag['obj'] = add(Tag(data));
+      if (add != null) {
+        var obj = tag['obj'] = add(Tag(data));
+        User_DB.ADD(obj);
+      }
     }
   }
 
@@ -449,6 +463,7 @@ class Client {
 
     if ((multi_user != null) && (user_id != null))
       multi_user.add_admin(user_id);
+    User_DB.ADD(multi_user);
   }
 
   void add_member_receiver(Tag tag) {
@@ -462,7 +477,10 @@ class Client {
       if (data != null) {
         var add_type = tag['type'];
         var add = get_add_method(add_type);
-        if (add != null) tag['obj'] = add(Tag(data));
+        if (add != null) {
+          var obj = tag['obj'] = add(Tag(data));
+          User_DB.ADD(obj);
+        }
       }
     }
   }
@@ -509,7 +527,10 @@ class Client {
     bool only_admin = false;
     if (tag['user_id'] == true) only_admin = true;
     var multi_user = get_multi_user(tag);
-    if (multi_user != null) multi_user.only_admin = only_admin;
+    if (multi_user != null) {
+      multi_user.only_admin = only_admin;
+      User_DB.ADD(multi_user);
+    }
   }
 
   void remove_admin_receiver(Tag tag) {
@@ -517,7 +538,10 @@ class Client {
     var user_id = tag['user_id'];
 
     if ((multi_user != null) && (user_id != null)) if (multi_user.admins
-        .contains(user_id)) multi_user.admins.remove(user_id);
+        .contains(user_id)) {
+      multi_user.admins.remove(user_id);
+      User_DB.ADD(multi_user);
+    }
   }
 
   void remove_member_receiver(Tag tag) {
@@ -527,7 +551,10 @@ class Client {
     if ((multi_user != null) && (user_id != null)) {
       if (multi_user.admins.contains(user_id))
         multi_user.admins.remove(user_id);
-      if (multi_user.users.contains(user_id)) multi_user.users.remove(user_id);
+      if (multi_user.users.contains(user_id)) {
+        multi_user.users.remove(user_id);
+        User_DB.ADD(multi_user);
+      }
     }
   }
 

@@ -50,7 +50,7 @@ class ContactsManager extends Manager {
     if (id == user.id) {
       id = chat['recipient'];
     }
-    var obj = get(id);
+    Contact? obj = get(id);
     if (obj != null) obj.add_chat(chat);
   }
 }
@@ -180,8 +180,8 @@ class Group extends MultiUsers {
 
   @override
   void change_data(Tag tag) {
-    super.change_data(tag);
     only_admin = tag['only_admin'] ?? false;
+    super.change_data(tag);
   }
 }
 

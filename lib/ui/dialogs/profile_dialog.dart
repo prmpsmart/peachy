@@ -141,7 +141,7 @@ class _ProfileDialogState extends P_StatefulWidgetState<ProfileDialog>
 
   void initState() {
     super.initState();
-    widget.client.RECV_LOG.addListener(listener);
+    Client.RECV_LOG.addListener(listener);
 
     _tabController = TabController(
         vsync: this, initialIndex: 0, length: chat_object.type == 1 ? 3 : 4);
@@ -300,7 +300,7 @@ class _ProfileDialogState extends P_StatefulWidgetState<ProfileDialog>
 
   @override
   void dispose() {
-    widget.client.RECV_LOG.removeListener(listener);
+    Client.RECV_LOG.removeListener(listener);
     super.dispose();
   }
 }
@@ -334,7 +334,7 @@ class _ClientProfileDialogState
   @override
   void initState() {
     super.initState();
-    widget.client.RECV_LOG.addListener(listener);
+    Client.RECV_LOG.addListener(listener);
 
     nameTC = TextEditingController(text: user.name);
     keyTC = TextEditingController(text: B64_DECODE_TO_STRING(user.key));
@@ -508,7 +508,7 @@ class _ClientProfileDialogState
 
   @override
   void dispose() {
-    widget.client.RECV_LOG.removeListener(listener);
+    Client.RECV_LOG.removeListener(listener);
     super.dispose();
   }
 }

@@ -37,7 +37,7 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
     tabController = TabController(vsync: this, initialIndex: 0, length: 3);
     tabController.addListener(() => setState(() {}));
 
-    widget.client.RECV_LOG.addListener(listener);
+    Client.RECV_LOG.addListener(listener);
 
     User.FINISHED_LOADING.addListener(
       () {
@@ -191,7 +191,7 @@ class _PeachyHomeState extends ConnectionWidgetState<PeachyHome>
 
   @override
   void dispose() {
-    widget.client.RECV_LOG.removeListener(listener);
+    Client.RECV_LOG.removeListener(listener);
     WidgetsBinding.instance?.removeObserver(this);
     client.logout();
     client.stop();

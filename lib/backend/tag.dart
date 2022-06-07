@@ -14,8 +14,6 @@ class Tag with Mixin {
   Tag(Map kwargs_) {
     Map kwargs = Map.from(kwargs_);
 
-    kwargs['mobile'] = true;
-
     if ((!kwargs.containsKey('date_time')) &&
         (!kwargs.containsKey(TAG['DATE_TIME'])))
       kwargs['date_time'] = DATETIME(num: false);
